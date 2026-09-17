@@ -52,6 +52,7 @@ brew uninstall --cask --zap splayer-next
 | Cask | 版本 | 上游 | 说明 |
 | --- | --- | --- | --- |
 | `micyou` | 2.0.3 | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），**仅 arm64**，需 macOS ≥ 11，另带 `micyou-cli` / `micyou-tui`。⚠️ 装完需重签名，见「已知上游问题」 |
+| `netcatty` | 1.1.83 | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh；arm64 / intel 双架构。签名与公证正常，装完即用 |
 | `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构。⚠️ 装完需重签名，见「已知上游问题」 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
@@ -72,6 +73,8 @@ brew uninstall --cask --zap splayer-next
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
 │   ├── m/
 │   │   └── micyou.rb
+│   ├── n/
+│   │   └── netcatty.rb
 │   └── s/
 │       └── splayer-next.rb     # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
 ├── Formula/                    # 目前为空，保留占位
@@ -346,5 +349,24 @@ launchctl bootout gui/$(id -u)/com.hibernalglow.cask-sign-repair  # 卸载
 
 **`splayer-next` 没有设 `auto_updates true`，这是刻意的。** 上游确实带了 `electron-updater`（`app-update.yml` 指向自己的 GitHub Release），但发布的 macOS 包是 **adhoc 签名、没有 Developer ID**（`codesign -dv` 显示 `Signature=adhoc`、`TeamIdentifier=not set`）。未签名的 macOS 应用自更新不可靠，而且一旦标了 `auto_updates true`，`brew outdated` 就不再上报该 cask —— 等于把 tap 唯一的升级提醒也关掉了。所以这里让 Homebrew 作为升级渠道（`brew upgrade --cask splayer-next`）。
 
+**`netcatty` 的签名是正常的，不需要重签名。** `codesign --verify --deep --strict` 与 `codesign -v` 都退 0，`Contents/_CodeSignature` 存在，`spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Qi Chen (H7WS5L2ML4)`）。所以它既不进 `caveats`，也不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS` 列表 —— 那个列表只收纳带缺陷的 cask。写新 cask 前先按上文验一遍签名，能提前判断要不要走修复流程。
+
+**`netcatty` 同样没有设 `auto_updates true`，理由和 `splayer-next` 不同。** 它是签名 + 公证齐备的 Electron 应用，产物里也确实有 `app-update.yml`（`updaterCacheDirName: netcatty-updater`），但它的更新是「提示模型」：检查更新由界面里的操作触发，代码里写死 `autoInstallOnAppQuit = false`，即后台不会静默换版本。既然应用不会绕过 Homebrew 自行升级，就让 Homebrew 继续当升级渠道，`brew outdated` 才有意义。**判断依据是可执行的，不是看有没有 `electron-updater` 依赖**：查 `codesign -dv` 是否有 Developer ID，再看产物里 updater 的实际行为。
+
+**Electron 应用的 `zap` 路径用应用名，不是 bundle id。** `netcatty` 的数据在 `~/Library/Application Support/netcatty`（`electron-updater` 的缓存在 `~/Library/Caches/netcatty-updater`）；这是 Electron 的规则 —— `userData` 取 `package.json` 的 `productName`，没有则取 `name`。Netcatty 打包后的 `package.json` 没有 `productName`，所以落成应用名 `netcatty`。对照 Tauri 应用（如同机的 `flclash`）走的是 bundle id，形如 `~/Library/Application Support/com.follow.clash`。**写 `zap` 前先确认走的是哪一套**，否则路径全错：
+
+```sh
+# 有 app.asar 就是 Electron 系
+ls "/Applications/App.app/Contents/Resources/app.asar"
+
+# Electron：取 package.json 里的 productName（没有就是 name）
+npx --yes @electron/asar extract-file "/Applications/App.app/Contents/Resources/app.asar" package.json
+
+# 最稳的验证：把应用跑一次，看它实际建了哪个目录
+ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
+```
+
 **Homebrew 会给 cask 产物打上 quarantine。** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
+
+**`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
