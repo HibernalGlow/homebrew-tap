@@ -180,23 +180,25 @@ brew test-bot --only-tap-syntax
 
 ### 无法自动检测时的维护方案
 
-如果某个上游不满足「稳定 Release + 产物名带版本号」，autobump 会拿不到新版本（`Latest livecheck version: unable to get versions`）。处理顺序：
+如果某个上游不满足「稳定 Release + 产物名带版本号」，autobump 会拿不到新版本（输出 `Latest livecheck version: unable to get versions`）。按顺序处理：
 
-1. **优先补 livecheck**。多数情况是 Release 命名不规律，写个 `livecheck` block 指定 `regex` / `strategy` 就能救回来：
+**1. 优先补 livecheck。** 多数情况是 Release 命名不规律，写个 `livecheck` block 指定 `regex` / `strategy` 就能救回来：
 
-   ```ruby
-   livecheck do
-     url :url
-     regex(/SPlayer-Next[._-]v?(\d+(?:\.\d+)+)/i)
-     strategy :github_releases
-   end
-   ```
+```ruby
+livecheck do
+  url :url
+  regex(/SPlayer-Next[._-]v?(\d+(?:\.\d+)+)/i)
+  strategy :github_releases
+end
+```
 
-   `:github_releases` 会遍历所有 release 而不是只看 `/releases/latest`，适合上游把稳定版标成 prerelease 的情况。
+`:github_releases` 会遍历所有 release 而不是只看 `/releases/latest`，适合上游把稳定版标成 prerelease 的情况。
 
-2. **退化为手动更新**（`version :latest` 的 rolling 包只能这样）：软件在「更新版本 → 手动」那节流程里走一遍，每季度检查一次。
+**2. 退化为手动更新。** `version :latest` 的 rolling 包只能这样：按上文「更新版本 → 手动」流程走一遍，每季度检查一次。
 
-3. 既不满足又需要频繁更新的，考虑不做成 cask，改用上游自己的安装方式，别给 tap 引入长期手工负担。
+**3. 换渠道。** 既不满足又需要频繁更新的，考虑不做成 cask，改用上游自己的安装方式，别给 tap 引入长期手工负担。
+
+> 注意：`brew style <tap>` 会用 rubocop-md 把 README 里的 Ruby 代码块也一起检查，所以文档中的 Ruby 片段同样要保持缩进与风格正确，否则 CI 会红。
 
 ## 已知注意事项
 
