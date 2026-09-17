@@ -1,5 +1,7 @@
 # hibernalglow/tap
 
+[![brew test-bot](https://github.com/HibernalGlow/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/HibernalGlow/homebrew-tap/actions/workflows/tests.yml)
+
 仓库地址：<https://github.com/HibernalGlow/homebrew-tap>
 
 个人 Homebrew tap：收纳 Homebrew 官方仓库（`homebrew/cask`）没有收录的小众 macOS GUI 应用。
@@ -157,7 +159,7 @@ brew test-bot --only-setup
 brew test-bot --only-tap-syntax
 ```
 
-> 本地 `brew audit` 需要可用的 Command Line Tools。本机 CLT 26.6 对 macOS 27.0 偏旧时，`brew audit` 会直接以 `Your Command Line Tools are too outdated` 退出（连官方 cask 也一样），此时 `brew style` / `ruby -c` / `install` 仍然正常。升级 CLT 后 audit 即可用。
+> 本地 `brew audit` 需要可用的 Command Line Tools。本机 CLT 26.6 对 macOS 27.0 偏旧时，`brew audit` 会直接以 `Your Command Line Tools are too outdated` 退出（连官方 cask 也一样），此时 `brew style` / `ruby -c` / `install` 仍然正常。**CI 不受影响** —— 同一份 cask 在 `macos-26` runner 上 `brew audit --strict --online` 是通过的。要修本机：`sudo rm -rf /Library/Developer/CommandLineTools && xcode-select --install`。
 
 ## CI 都检查什么
 

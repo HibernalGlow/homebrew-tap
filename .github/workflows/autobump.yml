@@ -15,6 +15,8 @@
 name: brew bump
 
 on:
+  # Editing this workflow re-runs a bump right away, so a changed schedule or
+  # bump command gets exercised immediately instead of waiting for the cron.
   push:
     branches:
       - main
