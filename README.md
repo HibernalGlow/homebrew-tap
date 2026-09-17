@@ -1,4 +1,6 @@
-# glow/tap
+# hibernalglow/tap
+
+仓库地址：<https://github.com/HibernalGlow/homebrew-tap>
 
 个人 Homebrew tap：收纳 Homebrew 官方仓库（`homebrew/cask`）没有收录的小众 macOS GUI 应用。
 
@@ -7,13 +9,15 @@
 ## 安装 tap
 
 ```sh
-brew tap glow/tap
+brew tap hibernalglow/tap
 ```
+
+> GitHub 上的 owner 是 `HibernalGlow`（含大写），但 Homebrew 会把 tap 名统一转小写，克隆路径也是小写的（`/opt/homebrew/Library/Taps/hibernalglow/homebrew-tap`）。写 `HibernalGlow/tap` 同样能装，只是内部规范形式是 `hibernalglow/tap`。
 
 Homebrew 7 起默认**不加载**第三方 tap 里的 cask/公式，首次 `install` 时会弹出信任提示。想提前授权：
 
 ```sh
-brew trust glow/tap
+brew trust hibernalglow/tap
 ```
 
 ## 安装软件
@@ -25,13 +29,13 @@ brew install --cask splayer-next
 不先 `tap` 也可以直接一步到位：
 
 ```sh
-brew install --cask glow/tap/splayer-next
+brew install --cask hibernalglow/tap/splayer-next
 ```
 
 写进 `Brewfile`：
 
 ```ruby
-tap "glow/tap"
+tap "hibernalglow/tap"
 cask "splayer-next"
 ```
 
@@ -136,13 +140,13 @@ brew style Casks/s/splayer-next.rb
 
 ```sh
 # 让本地 tap 的克隆同步到最新提交
-git -C "$(brew --repo glow/tap)" pull
+git -C "$(brew --repo hibernalglow/tap)" pull
 
-brew audit --strict --online --tap=glow/tap
-brew livecheck --cask --tap=glow/tap
+brew audit --strict --online --tap=hibernalglow/tap
+brew livecheck --cask --tap=hibernalglow/tap
 
-brew install --cask --dry-run glow/tap/splayer-next   # 预演
-brew install --cask glow/tap/splayer-next             # 真装
+brew install --cask --dry-run hibernalglow/tap/splayer-next   # 预演
+brew install --cask hibernalglow/tap/splayer-next             # 真装
 ```
 
 **CI 本地等价物**：
