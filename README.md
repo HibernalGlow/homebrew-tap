@@ -58,7 +58,7 @@ brew uninstall --cask --zap splayer-next
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
 | `font-lxgw-wenkai-mono-gb-screen` | 1.522 | 同上 | 等宽屏幕阅读版 GB 版 |
 
-> `micyou` / `splayer-next` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来。
+> `micyou` / `splayer-next` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来；机器上已配了 LaunchAgent 自动做这件事，见「签名不一致 → 自动修复」。
 
 
 > 屏幕阅读版与主版「霞鹜文楷」的区别：字重由 Medium 改为 Regular 并调整度量数据，PC / 手机屏幕上更清晰。上游只提供裸 `.ttf`（没有压缩包），所以 4 个变体各自一个 cask —— 一个 cask 只能带一组 `url` / `sha256`。只想要其中一个的话装对应的即可。
@@ -301,9 +301,46 @@ xattr -dr com.apple.quarantine /Applications/SPlayer-Next.app
 
 - **必须在启动之前修。** 带着坏签名去打开，macOS 会把 app 直接丢进废纸篓 —— 这就是「打开报损坏、然后应用不见了」的原因。真丢了就重新 `brew install` 再修一遍。
 - **真正起作用的是重签名。** 实测已重签的副本即使保留 `com.apple.quarantine` 也能正常启动；清 quarantine 只是把 Gatekeeper 的提示一并消掉，属于顺手做的事。
-- **每次升级都要重做。** Homebrew 原样解包上游产物，修复不会被保留：`brew upgrade --cask splayer-next` 之后要再执行一次。
-- **没有自动化这一步是刻意的**，理由见上文「不要用 install steps 给上游打补丁」。
+- **每次升级都要重做。** Homebrew 原样解包上游产物，修复不会被保留：`brew upgrade --cask splayer-next` 之后要再执行一次 —— 所以下面给了个自动化的办法。
+- **但不放进 cask 的 install steps**，理由见上文「不要用 install steps 给上游打补丁」：那个方案失败时会把刚装好的应用一起删掉。
 - 根治要上游改打包流程（Tauri / electron-builder 默认只签二进制、不打资源封套），可以去上游开 issue。
+
+#### 自动修复（推荐）
+
+修复必须在**启动之前**完成（带坏签名被打开时 macOS 会直接把 app 丢进废纸篓），所以让系统在 app 变化时自动跑一遍「检测 → 修复」。用 LaunchAgent 监听 app 包，脚本独立于 Homebrew，最坏情况也只是它自己失败，不会影响安装。
+
+`~/Library/Application Support/cask-sign-repair/repair.sh` —— 检测靠 `codesign --verify --deep --strict` 的退出码（修复过的包通过、上游坏产物失败），通过就什么都不做，因此可以无脑重复执行：
+
+```sh
+for app in "$@"; do
+  /usr/bin/codesign --verify --deep --strict "$app" >/dev/null 2>&1 && continue
+  /usr/bin/codesign --force --deep --sign - "$app"
+  /usr/bin/xattr -dr com.apple.quarantine "$app"
+done
+```
+
+`~/Library/LaunchAgents/com.hibernalglow.cask-sign-repair.plist` 的关键字段：
+
+```xml
+<key>RunAtLoad</key><true/>
+<key>WatchPaths</key>
+<array>
+  <string>/Applications/SPlayer-Next.app</string>
+  <string>/Applications/MicYou.app</string>
+</array>
+<key>StartInterval</key><integer>21600</integer>
+```
+
+`brew upgrade --cask` 会删除并重建 `.app` 目录，`WatchPaths` 因此触发；`StartInterval` 是 6 小时兜底，防止路径短暂不存在时监听被摘掉。
+
+```sh
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hibernalglow.cask-sign-repair.plist
+launchctl print gui/$(id -u)/com.hibernalglow.cask-sign-repair    # 查看状态
+sh ~/Library/Application\ Support/cask-sign-repair/repair.sh      # 手动跑一次
+launchctl bootout gui/$(id -u)/com.hibernalglow.cask-sign-repair  # 卸载
+```
+
+日志写在 `~/Library/Logs/cask-sign-repair.log`。**新增带同类缺陷的 cask 时**，要把它对应的 `.app` 路径同时加进 `WatchPaths` 和脚本的 `DEFAULT_APPS` —— 两处都是硬编码的固定列表，不做全 `/Applications` 扫描（那样每次要 `--deep` 校验几十个大应用，太慢，而且会去动本 tap 之外的签名）。
 
 ## 已知注意事项
 
