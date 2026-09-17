@@ -214,6 +214,14 @@ brew tap hibernalglow/tap ~/Projects/homebrew-tap
 
 但 `brew tap <name> <path>` 依然是 **git clone 而非软链** —— 未提交的改动 tap 看不到，必须先 `git commit`。反过来，如果你在开发目录改写过后历史（`--amend` / `rebase`），要用 `git -C "$(brew --repo hibernalglow/tap)" reset --hard origin/main` 把克隆拉回来，否则 `git pull` 会因分叉而失败、brew 继续读旧代码（这点很坑：cask 明明改了却毫无效果）。调试完记得换回 `brew tap hibernalglow/tap`，从 GitHub 克隆，与真实用户视角一致。
 
+换回 GitHub 时**不能直接 `brew untap`**：只要这个 tap 里还有已安装的 cask，Homebrew 会拒绝解绑 —— `Error: Refusing to untap hibernalglow/tap because it contains the following installed casks: hibernalglow/tap/splayer-next`。要么先 `brew uninstall --cask splayer-next`，要么直接改克隆的远端：
+
+```sh
+T="$(brew --repo hibernalglow/tap)"
+git -C "$T" remote set-url origin https://github.com/HibernalGlow/homebrew-tap.git
+git -C "$T" fetch origin && git -C "$T" reset --hard origin/main
+```
+
 **CI 本地等价物**：
 
 ```sh
