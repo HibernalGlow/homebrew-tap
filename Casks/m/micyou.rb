@@ -29,9 +29,9 @@ cask "micyou" do
   ]
 
   caveats do
-    puts <<~EOS
+    <<~EOS
       MicYou needs a virtual audio device to expose the phone audio as a system
-      input. With BlackHole installed, select it in System Settings → Sound → Input:
+      input. With BlackHole installed, pick it in System Settings → Sound → Input:
 
         brew install --cask blackhole-2ch
     EOS
