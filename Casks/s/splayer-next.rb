@@ -5,8 +5,7 @@ cask "splayer-next" do
   sha256 arm:   "ebcd25f2dd79b88887b954be40245bd31afebc4ad45f917d4670ea2f6dcfe3a0",
          intel: "73d3c0ffa337f46c2ef872402296cd0970bf112d5b4679d680378a5885ad598c"
 
-  url "https://github.com/SPlayer-Dev/SPlayer-Next/releases/download/v#{version}/SPlayer-Next-#{version}-#{arch}.dmg",
-      verified: "github.com/SPlayer-Dev/SPlayer-Next/"
+  url "https://github.com/SPlayer-Dev/SPlayer-Next/releases/download/v#{version}/SPlayer-Next-#{version}-#{arch}.dmg"
   name "SPlayer-Next"
   desc "Desktop music player with rich lyric support"
   homepage "https://github.com/SPlayer-Dev/SPlayer-Next"

@@ -1,0 +1,126 @@
+# CI for the glow/tap Homebrew tap.
+#
+# Two layers:
+#
+#   1. `brew test-bot` — the same harness Homebrew runs on official taps
+#      (tap syntax, `readall`, `audit`).
+#   2. Cask-specific gates — `brew test-bot` is formula-oriented and has no
+#      cask step (`--only-tap-syntax` audits without `--strict`/`--online`),
+#      so the explicit audit/style steps below are what actually catch cask
+#      format, URL, checksum and `depends_on macos` mistakes.
+#
+# Everything runs on macOS: casks are macOS-only artifacts, so a Linux runner
+# can only re-check Ruby syntax and would add runtime without coverage.
+name: brew test-bot
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tap-syntax:
+    name: Tap syntax
+    runs-on: macos-26
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+
+      - run: brew test-bot --only-cleanup-before
+
+      - run: brew test-bot --only-setup
+
+      - run: brew test-bot --only-tap-syntax
+
+  cask-checks:
+    name: Cask checks
+    runs-on: macos-26
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+
+      - name: Check Ruby syntax
+        run: find Casks -type f -name '*.rb' -exec ruby -c {} +
+
+      - name: Check cask style
+        env:
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: brew style "$TAP_NAME"
+
+      - name: Audit casks (strict + online)
+        env:
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: brew audit --strict --online --tap="$TAP_NAME"
+
+  install:
+    name: Install casks
+    runs-on: macos-26
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Homebrew 7 refuses to load casks from non-official taps until the tap
+      # has been trusted.
+      - name: Trust tap
+        env:
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: brew trust --tap "$TAP_NAME"
+
+      # A real install is the only check that verifies version, checksum and
+      # artifact stanzas end to end.
+      - name: Install and uninstall every cask
+        env:
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: |
+          while IFS= read -r file
+          do
+            token="$(basename "$file" .rb)"
+            echo "::group::$token"
+            brew install --cask "$TAP_NAME/$token"
+            brew uninstall --cask --zap "$token"
+            echo "::endgroup::"
+          done < <(find Casks -type f -name '*.rb' | sort)

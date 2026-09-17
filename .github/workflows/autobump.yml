@@ -1,0 +1,58 @@
+# Checks every cask against its upstream GitHub release and opens a PR for each
+# one that is behind.
+#
+# Deliberately NOT automatic beyond that: `brew bump --open-pr` only opens a
+# pull request — nothing is merged, tagged or released without a human reading
+# the diff and merging it by hand.
+#
+# Runs on macOS because casks are macOS-only artifacts.
+#
+# Known caveat: PRs opened with the default `GITHUB_TOKEN` do not trigger
+# workflow runs (GitHub suppresses events caused by that token), so the bump PR
+# will show no CI status. Merge only after reviewing the version/checksum diff,
+# or switch `HOMEBREW_GITHUB_API_TOKEN` to a fine-grained PAT with
+# `contents: write` + `pull-requests: write` to get CI on the PR.
+name: brew bump
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/autobump.yml
+  schedule:
+    # Every day at 11:30 UTC
+    - cron: 30 11 * * *
+  # Allow running the bump by hand, e.g. right after adding a new cask.
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  autobump:
+    runs-on: macos-26
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+
+      - name: Bump casks
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
+          HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          TAP_NAME: ${{ steps.set-up-homebrew.outputs.tap-name }}
+        run: brew bump --no-fork --open-pr --casks --tap="$TAP_NAME"
