@@ -51,13 +51,27 @@ brew uninstall --cask --zap splayer-next
 
 | Cask | 版本 | 上游 | 说明 |
 | --- | --- | --- | --- |
-| `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构 |
+| `micyou` | 2.0.3 | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），**仅 arm64**，需 macOS ≥ 11，另带 `micyou-cli` / `micyou-tui`。⚠️ 装完需重签名，见「已知上游问题」 |
+| `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构。⚠️ 装完需重签名，见「已知上游问题」 |
+| `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
+| `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
+| `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
+| `font-lxgw-wenkai-mono-gb-screen` | 1.522 | 同上 | 等宽屏幕阅读版 GB 版 |
+
+> `micyou` / `splayer-next` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来。
+
+
+> 屏幕阅读版与主版「霞鹜文楷」的区别：字重由 Medium 改为 Regular 并调整度量数据，PC / 手机屏幕上更清晰。上游只提供裸 `.ttf`（没有压缩包），所以 4 个变体各自一个 cask —— 一个 cask 只能带一组 `url` / `sha256`。只想要其中一个的话装对应的即可。
 
 ## 目录结构
 
 ```
 .
 ├── Casks/
+│   ├── f/
+│   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
+│   ├── m/
+│   │   └── micyou.rb
 │   └── s/
 │       └── splayer-next.rb     # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
 ├── Formula/                    # 目前为空，保留占位
@@ -90,13 +104,53 @@ shasum -a 256 /tmp/casksha/*.dmg
 $EDITOR Casks/<首字母>/<name>.rb
 ```
 
-骨架参考 `Casks/s/splayer-next.rb`。要点：
+骨架参考 `Casks/s/splayer-next.rb`（双架构应用）与 `Casks/m/micyou.rb`（单架构 + 附带 CLI + caveats）。要点：
 
 - 顺序遵循 Cask Style Guide：`arch` → `version` → `sha256` → `url` → `name` → `desc` → `homepage` → `livecheck` → `depends_on` → `app` → `zap`
 - 上游产物有架构区分时，用 `arch arm: "arm64", intel: "x64"` 重定义 `arch`，再在 URL 里插值，避免写 `on_arm` / `on_intel` 两份
+- 上游只发**单一架构**时，直接 `depends_on arch: :arm64`（或 `:x86_64`），URL 里写死该架构即可
+- `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0` → `depends_on macos: :big_sur`）
 - `desc` 不重复包名、结尾不加句号、不超过 80 字符
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
+- app 里若还打包了 CLI / TUI 可执行文件，用 `binary "#{appdir}/X.app/Contents/MacOS/x-cli", target: "x-cli"` 暴露出来
+
+### 字体类 cask（`font-` token）
+
+- **必须写 `desc`。** 官方 `homebrew/cask` 里的 font cask 大多没有 `desc`，但那是硬编码的特例：audit 的豁免条件是 `cask.tap == "homebrew/cask"`，第三方 tap 缺 `desc` 会直接报 `Cask should have a description`
+- 上游只给裸 `.ttf`（没有压缩包）时，**一个变体一个 cask** —— 一个 cask 只能带一组 `url` / `sha256`。`font` stanza 写 staged 根目录下的文件名，如 `font "LXGWWenKaiScreen.ttf"`
+- 上游给压缩包时，一个 cask 可以列多个 `font`（参考官方 `font-lxgw-wenkai` 一次装 6 个字重）
+- `name` 写两行（英文 + 中文），`livecheck` 用 `url :url` + `strategy :github_latest`，结尾加 `# No zap stanza required`
+
+### `caveats`
+
+块必须**产出字符串**。最稳、也最推荐的是让 heredoc 作为块的返回值：
+
+```ruby
+caveats do
+  <<~EOS
+    MicYou needs a virtual audio device to expose the phone audio as a
+    system input:
+
+      brew install --cask blackhole-2ch
+  EOS
+end
+```
+
+`puts` 也可以用 —— Homebrew 覆写掉了 `Cask::DSL::Caveats#puts`，参数会被收进自定义 caveats（实测有效）。但要注意 **`eval_caveats` 取的是块最后一条表达式的返回值**：如果块以 `if` / 赋值 / 返回 nil 的调用收尾，Caveats 段会静默变空，而 `brew style` 查不出来。所以要么以 heredoc 收尾，要么全文用 `puts`。
+
+`appdir` / `token` / `version` 在 caveats 里可用（`Cask::DSL::Base` 把这些委托给了 cask），可以直接写 `"#{appdir}/X.app"`。
+
+### 不要用 install steps 给上游「打补丁」
+
+Homebrew 7 的 `postflight_steps` 能在安装后跑命令（官方有 cask 在用，如 `pd`、`vcam`），但**这个 tap 里禁用**。原因是一次实测：
+
+- 这些步骤跑在 Homebrew 自己的 `sandbox-exec` 里。当 brew 本身处在另一个沙箱中（IDE 内置终端、脚本运行器、CI 封装等），内层沙箱起不来，报 `sandbox-exec: sandbox_apply: Operation not permitted`，进程 exit 71。
+- **`must_succeed: false` 挡不住** —— 沙箱启动失败时整个安装照样中止，而且 Homebrew 会把刚解包出来的 app 删掉（`==> Removing App` → `Purging files`）。也就是说"自动修复失败"的结果是**应用直接消失**，比不写这段更糟。
+- 用户没有逃生舱：`HOMEBREW_NO_SANDBOX_CASK` 在 Homebrew 7 里已标记 `odisabled`。
+- CI 也验证不了：runner 是 `macos-26`，本机是 macOS 27，`sandbox-exec` 行为不一致，CI 绿灯不代表本机可用。
+
+结论：上游产物缺陷一律写成 `caveats` 命令，由使用者在自己的终端执行一次 —— 可验证、失败无害、不会删掉 app。
 
 ## 更新版本
 
@@ -151,6 +205,15 @@ brew install --cask --dry-run hibernalglow/tap/splayer-next   # 预演
 brew install --cask hibernalglow/tap/splayer-next             # 真装
 ```
 
+想让 tap 暂时指向开发目录、省掉 push → pull 的往返：
+
+```sh
+brew untap hibernalglow/tap
+brew tap hibernalglow/tap ~/Projects/homebrew-tap
+```
+
+但 `brew tap <name> <path>` 依然是 **git clone 而非软链** —— 未提交的改动 tap 看不到，必须先 `git commit`。反过来，如果你在开发目录改写过后历史（`--amend` / `rebase`），要用 `git -C "$(brew --repo hibernalglow/tap)" reset --hard origin/main` 把克隆拉回来，否则 `git pull` 会因分叉而失败、brew 继续读旧代码（这点很坑：cask 明明改了却毫无效果）。调试完记得换回 `brew tap hibernalglow/tap`，从 GitHub 克隆，与真实用户视角一致。
+
 **CI 本地等价物**：
 
 ```sh
@@ -180,6 +243,7 @@ brew test-bot --only-tap-syntax
 约定：
 
 - **不引入额外依赖**：只用 Homebrew 自带的 `brew style` / `audit` / `livecheck` / `bump` + 官方 `Homebrew/actions/*`，不写自定义脚本、不加第三方 action
+- **上游产物缺陷用 `caveats` 写清楚，不用 install steps 自动改**：失败会连应用一起删掉，理由见上文
 - **版本信息单一来源**：版本号只写在 cask 的 `version` 里，靠 `livecheck` 从上游推导，不额外维护 manifest
 - **上游必须可自动检测**：否则见下
 - formula（CLI 工具）目前不需要；真要加，把 `brew tap-new` 生成的 `publish.yml`（`brew pr-pull`，给 bottle 用）从模板取回来即可 —— 现在没有 formula，那个 workflow 永远跑不起来，所以没放进来
@@ -206,8 +270,36 @@ end
 
 > 注意：`brew style <tap>` 会用 rubocop-md 把 README 里的 Ruby 代码块也一起检查，所以文档中的 Ruby 片段同样要保持缩进与风格正确，否则 CI 会红。
 
+## 已知上游问题
+
+### 签名不一致：`splayer-next` / `micyou` 装完必须重签名
+
+两个应用带的是**同一类上游打包缺陷**：可执行文件是链接期 ad-hoc 签名（`codesign -dv` 显示 `Signature=adhoc` + `flags=0x2(adhoc,linker-signed)`），签名声明了「有密封资源」，但 `.app` 包体从未生成 `Contents/_CodeSignature`。macOS 读到这个自相矛盾就判定为损坏：
+
+```text
+"SPlayer-Next.app" is damaged and can't be opened.
+```
+
+`codesign -v` 的原文是 `code has no resources but signature indicates they must be present`。
+
+修复（**首次启动前**执行；把路径换成对应应用）：
+
+```sh
+codesign --force --deep --sign - /Applications/SPlayer-Next.app
+xattr -dr com.apple.quarantine /Applications/SPlayer-Next.app
+```
+
+要点：
+
+- **必须在启动之前修。** 带着坏签名去打开，macOS 会把 app 直接丢进废纸篓 —— 这就是「打开报损坏、然后应用不见了」的原因。真丢了就重新 `brew install` 再修一遍。
+- **真正起作用的是重签名。** 实测已重签的副本即使保留 `com.apple.quarantine` 也能正常启动；清 quarantine 只是把 Gatekeeper 的提示一并消掉，属于顺手做的事。
+- **每次升级都要重做。** Homebrew 原样解包上游产物，修复不会被保留：`brew upgrade --cask splayer-next` 之后要再执行一次。
+- **没有自动化这一步是刻意的**，理由见上文「不要用 install steps 给上游打补丁」。
+- 根治要上游改打包流程（Tauri / electron-builder 默认只签二进制、不打资源封套），可以去上游开 issue。
+
 ## 已知注意事项
 
 **`splayer-next` 没有设 `auto_updates true`，这是刻意的。** 上游确实带了 `electron-updater`（`app-update.yml` 指向自己的 GitHub Release），但发布的 macOS 包是 **adhoc 签名、没有 Developer ID**（`codesign -dv` 显示 `Signature=adhoc`、`TeamIdentifier=not set`）。未签名的 macOS 应用自更新不可靠，而且一旦标了 `auto_updates true`，`brew outdated` 就不再上报该 cask —— 等于把 tap 唯一的升级提醒也关掉了。所以这里让 Homebrew 作为升级渠道（`brew upgrade --cask splayer-next`）。
 
-**应用未签名会被 Gatekeeper 拦。** 通过 `brew install --cask` 安装时 Homebrew 会清掉 quarantine 属性，正常打开即可；手动从 dmg 拖进 `/Applications` 的话需要 `xattr -dr com.apple.quarantine /Applications/SPlayer-Next.app`。
+**Homebrew 会给 cask 产物打上 quarantine。** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
+

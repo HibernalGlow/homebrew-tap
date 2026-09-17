@@ -27,4 +27,28 @@ cask "splayer-next" do
     "~/Library/Preferences/top.imsyy.splayer-next.plist",
     "~/Library/Saved Application State/top.imsyy.splayer-next.savedState",
   ]
+
+  caveats do
+    <<~EOS
+      Upstream ships this app with an inconsistent code signature: its binaries
+      are linker-signed ad-hoc, which claims sealed resources, but the bundle
+      never received a Contents/_CodeSignature envelope. macOS reads that
+      mismatch as a damaged download and refuses to launch it, then offers to
+      move it to the Trash:
+
+        "SPlayer-Next.app" is damaged and can't be opened.
+
+      Repair the installed bundle before the first launch:
+
+        codesign --force --deep --sign - "#{appdir}/SPlayer-Next.app"
+        xattr -dr com.apple.quarantine "#{appdir}/SPlayer-Next.app"
+
+      This is a property of the artifact rather than of the installation:
+      Homebrew unpacks upstream's copy verbatim, so the repair is lost on every
+      upgrade and must be repeated after each `brew upgrade --cask splayer-next`.
+
+      Launching the app while it is still broken makes macOS move it to the
+      Trash, so reinstall and repair instead of reusing that copy.
+    EOS
+  end
 end

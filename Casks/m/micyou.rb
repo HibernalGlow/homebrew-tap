@@ -30,8 +30,26 @@ cask "micyou" do
 
   caveats do
     <<~EOS
-      MicYou needs a virtual audio device to expose the phone audio as a system
-      input. With BlackHole installed, pick it in System Settings → Sound → Input:
+      Upstream ships this app with an inconsistent code signature: its binaries
+      are linker-signed ad-hoc, which claims sealed resources, but the bundle
+      never received a Contents/_CodeSignature envelope. macOS reads that
+      mismatch as a damaged download and refuses to launch it, then offers to
+      move it to the Trash:
+
+        "MicYou.app" is damaged and can't be opened.
+
+      Repair the installed bundle before the first launch:
+
+        codesign --force --deep --sign - "#{appdir}/MicYou.app"
+        xattr -dr com.apple.quarantine "#{appdir}/MicYou.app"
+
+      This is a property of the artifact rather than of the installation:
+      Homebrew unpacks upstream's copy verbatim, so the repair is lost on every
+      upgrade and must be repeated after each `brew upgrade --cask micyou`.
+
+      MicYou also needs a virtual audio device to expose the phone audio as a
+      system input. With BlackHole installed, pick it in System Settings →
+      Sound → Input:
 
         brew install --cask blackhole-2ch
     EOS
