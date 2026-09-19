@@ -55,7 +55,7 @@ brew uninstall --cask --zap splayer-next
 | `netcatty` | 1.1.83 | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh；arm64 / intel 双架构。签名与公证正常，装完即用 |
 | `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构。⚠️ 装完需重签名，见「已知上游问题」 |
 | `lume-app` | 1.2.0 | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机），universal 二进制。⚠️ 装完需重签名，见「已知上游问题」 |
-| `reinplayer` | 1.1.0 | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit），universal 二进制。上游 ad-hoc 签名（无 Developer ID，bundle id 仍是占位 `com.example.reinPlayer`）；正常安装即用，被 Gatekeeper 拦截才需清 quarantine，见「已知注意事项 → reinplayer」 |
+| `reinplayer` | 1.1.0 | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit），universal 二进制。上游 ad-hoc 签名（无 Developer ID，bundle id 仍是占位 `com.example.reinPlayer`）；Homebrew 会给产物打 quarantine、首次启动会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine 即可，见「已知注意事项 → reinplayer」 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -375,7 +375,7 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 
 **Homebrew 会给 cask 产物打上 quarantine.** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
 
-**`reinplayer` 是 ad-hoc 签名，但签名本身自洽，不算「损坏」类缺陷。** 它是 Flutter 应用（带 FlutterMacOS / media_kit / mpv 等 30+ 框架），`codesign -v` 与 `codesign --verify --deep --strict` 都对全包退 0、`Contents/_CodeSignature` 存在 —— 所以普通 `brew install --cask reinplayer` 装完直接能开，不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`（那个列表只收「启动前必须重签」的坏签名 cask）。唯一的坑是上游 `CFBundleIdentifier` 没改、停留在占位 `com.example.reinPlayer`，且整体 ad-hoc（无 Developer ID、未公证）：若用户是先用浏览器下的 dmg、被打了 quarantine，首次启动会被 Gatekeeper 拦「无法验证的开发者」。这种情况 cask 的 Caveats 里给了 `xattr -dr com.apple.quarantine` 清隔离属性（需要的话再 `codesign --force --deep --sign -` 重签），但不设 `auto_updates`（ad-hoc 自更新不可靠，让 Homebrew 当升级渠道）。
+**`reinplayer` 是 ad-hoc 签名，但签名本身自洽，不算「损坏」类缺陷。** 它是 Flutter 应用（带 FlutterMacOS / media_kit / mpv 等 30+ 框架），`codesign -v` 与 `codesign --verify --deep --strict` 都对全包退 0、`Contents/_CodeSignature` 存在 —— 但它**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那个列表只收「启动前必须重签」的坏签名 cask），因为 LaunchAgent 的判定门是 `codesign --verify --deep --strict`、而 reinplayer 这个门能过，修了也修不到 quarantine。真正的坑有两层：上游 `CFBundleIdentifier` 没改、停留在占位 `com.example.reinPlayer`；且整体 ad-hoc（无 Developer ID、未公证），而 Homebrew 装完会给 `.app` 打上 `com.apple.quarantine`（实测 `/Applications/rein_player.app` 装完确实带着）。quarantine + 无 Developer ID → 首次启动被 Gatekeeper 拦「无法验证的开发者」。Caveats 里给了 `xattr -dr com.apple.quarantine` 清隔离属性（或更省事：右键 → 打开 一次加入用户豁免；需要的话再 `codesign --force --deep --sign -` 重签），不设 `auto_updates`（ad-hoc 自更新不可靠，让 Homebrew 当升级渠道）。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 

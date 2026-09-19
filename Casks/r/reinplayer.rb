@@ -29,12 +29,14 @@ cask "reinplayer" do
     <<~EOS
       Upstream ships this app with an ad-hoc code signature (no Developer ID,
       bundle identifier left at the default placeholder "com.example.reinPlayer").
-      The bundle verifies cleanly (`codesign -v` passes), so a normal
-      `brew install --cask reinplayer` launches without trouble.
+      The bundle is not damaged (`codesign -v` passes), but Homebrew attaches a
+      quarantine attribute on install and the signature has no Developer ID, so
+      macOS Gatekeeper blocks the first launch:
 
-      If macOS ever blocks first launch with "cannot be opened because the
-      developer cannot be verified", the app picked up a quarantine attribute
-      (e.g. you downloaded the .dmg through a browser first). Clear it:
+        "rein_player.app" cannot be opened because the developer cannot be verified.
+
+      Clear the quarantine (or right-click the app and choose Open once to add a
+      user override):
 
         xattr -dr com.apple.quarantine "#{appdir}/rein_player.app"
 
