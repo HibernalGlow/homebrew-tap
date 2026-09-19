@@ -13,7 +13,7 @@ cask "micyou" do
   end
 
   depends_on arch: :arm64
-  depends_on macos: :big_sur
+  depends_on :macos
 
   app "MicYou.app"
   binary "#{appdir}/MicYou.app/Contents/MacOS/micyou-cli", target: "micyou-cli"

@@ -54,13 +54,13 @@ brew uninstall --cask --zap splayer-next
 | `micyou` | 2.0.3 | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），**仅 arm64**，需 macOS ≥ 11，另带 `micyou-cli` / `micyou-tui`。⚠️ 装完需重签名，见「已知上游问题」 |
 | `netcatty` | 1.1.83 | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh；arm64 / intel 双架构。签名与公证正常，装完即用 |
 | `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构。⚠️ 装完需重签名，见「已知上游问题」 |
-| `lume` | 1.2.0 | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机），universal 二进制。⚠️ 装完需重签名，见「已知上游问题」 |
+| `lume-app` | 1.2.0 | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机），universal 二进制。⚠️ 装完需重签名，见「已知上游问题」 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
 | `font-lxgw-wenkai-mono-gb-screen` | 1.522 | 同上 | 等宽屏幕阅读版 GB 版 |
 
-> `micyou` / `splayer-next` / `lume` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来；机器上已配了 LaunchAgent 自动做这件事，见「签名不一致 → 自动修复」。
+> `micyou` / `splayer-next` / `lume-app` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来；机器上已配了 LaunchAgent 自动做这件事，见「签名不一致 → 自动修复」。
 
 
 > 屏幕阅读版与主版「霞鹜文楷」的区别：字重由 Medium 改为 Regular 并调整度量数据，PC / 手机屏幕上更清晰。上游只提供裸 `.ttf`（没有压缩包），所以 4 个变体各自一个 cask —— 一个 cask 只能带一组 `url` / `sha256`。只想要其中一个的话装对应的即可。
@@ -284,7 +284,7 @@ end
 
 ## 已知上游问题
 
-### 签名不一致：`splayer-next` / `micyou` / `lume` 装完必须重签名
+### 签名不一致：`splayer-next` / `micyou` / `lume-app` 装完必须重签名
 
 两个应用带的是**同一类上游打包缺陷**：可执行文件是链接期 ad-hoc 签名（`codesign -dv` 显示 `Signature=adhoc` + `flags=0x2(adhoc,linker-signed)`），签名声明了「有密封资源」，但 `.app` 包体从未生成 `Contents/_CodeSignature`。macOS 读到这个自相矛盾就判定为损坏：
 

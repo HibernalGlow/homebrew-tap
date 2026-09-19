@@ -1,4 +1,4 @@
-cask "lume" do
+cask "lume-app" do
   version "1.2.0"
   sha256 "cc13f8327042dfaedcb07fb5cb6f0a3e58e6656b11854f1e831eb730c2ebe8c2"
 
@@ -48,7 +48,7 @@ cask "lume" do
 
       This is a property of the artifact rather than of the installation:
       Homebrew unpacks upstream's copy verbatim, so the repair is lost on every
-      upgrade and must be repeated after each `brew upgrade --cask lume`.
+      upgrade and must be repeated after each `brew upgrade --cask lume-app`.
 
       Launching the app while it is still broken makes macOS move it to the
       Trash, so reinstall and repair instead of reusing that copy.
