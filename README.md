@@ -56,6 +56,7 @@ brew uninstall --cask --zap splayer-next
 | `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构。⚠️ 装完需重签名，见「已知上游问题」 |
 | `lume-app` | 1.2.0 | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机），universal 二进制。⚠️ 装完需重签名，见「已知上游问题」 |
 | `reinplayer` | 1.1.0 | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit），universal 二进制。上游 ad-hoc 签名（无 Developer ID，bundle id 仍是占位 `com.example.reinPlayer`）；Homebrew 会给产物打 quarantine、首次启动会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine 即可，见「已知注意事项 → reinplayer」 |
+| `ztools` | 3.2.0 | [ZToolsCenter/ZTools](https://github.com/ZToolsCenter/ZTools) | 应用启动器 + 插件平台（类 uTools，Electron 41），arm64 / intel 双架构，需 macOS ≥ 12。签名与公证正常，装完即用；全局快捷键要单独授「辅助功能」权限 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -81,8 +82,10 @@ brew uninstall --cask --zap splayer-next
 │   │   └── netcatty.rb
 │   ├── r/
 │   │   └── reinplayer.rb
-│   └── s/
-│       └── splayer-next.rb     # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
+│   ├── s/
+│   │   └── splayer-next.rb
+│   └── z/
+│       └── ztools.rb           # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
 ├── Formula/                    # 目前为空，保留占位
 ├── .github/
 │   ├── dependabot.yml          # 每周自动更新 workflow 里的 action 版本
@@ -360,6 +363,8 @@ launchctl bootout gui/$(id -u)/com.hibernalglow.cask-sign-repair  # 卸载
 
 **`netcatty` 同样没有设 `auto_updates true`，理由和 `splayer-next` 不同。** 它是签名 + 公证齐备的 Electron 应用，产物里也确实有 `app-update.yml`（`updaterCacheDirName: netcatty-updater`），但它的更新是「提示模型」：检查更新由界面里的操作触发，代码里写死 `autoInstallOnAppQuit = false`，即后台不会静默换版本。既然应用不会绕过 Homebrew 自行升级，就让 Homebrew 继续当升级渠道，`brew outdated` 才有意义。**判断依据是可执行的，不是看有没有 `electron-updater` 依赖**：查 `codesign -dv` 是否有 Developer ID，再看产物里 updater 的实际行为。
 
+**`ztools` 的签名也是正常的，`auto_updates` 同样按上面这条判断没设。** `spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)`），`codesign --verify --deep --strict` 退 0，所以不进 Caveats 的修复流程、也不进 LaunchAgent 列表。updater 是 `electron-updater` 6.8.9（`updaterCacheDirName: ztools-updater`），但代码里 `autoDownload = false` 且 `autoInstallOnAppQuit = false` —— 和 netcatty 一样的「提示模型」，因此升级渠道留给 Homebrew。`depends_on macos: :monterey` 取自二进制的 `LC_BUILD_VERSION`（`minos 12.0`），与 `Info.plist` 的 `LSMinimumSystemVersion` 恰好一致。Caveats 里只有辅助功能权限这一条：它靠 `uiohook-napi` 监听全局快捷键，未授权时快捷键没有反应（上游文案原话是「需要辅助功能权限来响应快捷键并完成键盘与窗口操作」）。应用自己有引导页，也有「重置辅助功能权限」入口，用于升级后 macOS 留着过期授权记录的情况。
+
 **Electron 应用的 `zap` 路径用应用名，不是 bundle id。** `netcatty` 的数据在 `~/Library/Application Support/netcatty`（`electron-updater` 的缓存在 `~/Library/Caches/netcatty-updater`）；这是 Electron 的规则 —— `userData` 取 `package.json` 的 `productName`，没有则取 `name`。Netcatty 打包后的 `package.json` 没有 `productName`，所以落成应用名 `netcatty`。对照 Tauri 应用（如同机的 `flclash`）走的是 bundle id，形如 `~/Library/Application Support/com.follow.clash`。**写 `zap` 前先确认走的是哪一套**，否则路径全错：
 
 ```sh
@@ -372,6 +377,10 @@ npx --yes @electron/asar extract-file "/Applications/App.app/Contents/Resources/
 # 最稳的验证：把应用跑一次，看它实际建了哪个目录
 ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 ```
+
+**上面这条规则只对「没改过 `userData`」的 Electron 应用成立。** `ztools` 就是反例：主进程入口一启动就调 `app.setPath("userData", ~/.ztools)`（可用 `ZTOOLS_DATA_ROOT` 覆盖），插件、剪贴板历史、lmdb 索引全落在家目录那个隐藏文件夹里，`~/Library/Application Support/ZTools` 只是 3.x 之前的老位置（代码里叫 `legacyUserDataPath`，留着做迁移）。所以它的 `zap` 第一项是 `~/.ztools`，其余按 bundle id `top.z-tools` / 应用名 `ZTools` 拼。判断方法：在 `app.asar` 里搜 `setPath("userData"`，命中就不能照抄应用名。
+
+> 代价是 `brew uninstall --cask --zap ztools` 会连用户自己装的插件（`~/.ztools/plugins`）和剪贴板历史一起删 —— 这符合 `--zap` 的语义，但想保住插件就别加 `--zap`。同一类取舍的另一个方向见 `lume-app`：那里刻意没把用户的 VM 镜像列进 `zap`。
 
 **Homebrew 会给 cask 产物打上 quarantine.** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
 
