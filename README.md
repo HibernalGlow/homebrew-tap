@@ -60,12 +60,13 @@ brew uninstall --cask --zap splayer-next
 | `clipp` | 1.5.0.160 | [martona/clipp](https://github.com/martona/clipp) | 局域网 P2P 剪贴板同步（文本 / 图片），同一个二进制兼作 `clipp copy` / `paste` CLI。**仅 arm64**，需 macOS ≥ 14。签名与公证正常，装完即用。上游自己有 tap（`martona/tap`），本 tap 这份补了 `quit` 和寄存器快照的 `zap` 路径，理由见「已知注意事项 → clipp」 |
 | `my-window-pip` | 0.1.7 | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，通用二进制，CPU 近零），需 macOS ≥ 14，必需「屏幕录制」权限。⚠️ 自签证书、未经 Apple 公证，首启会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine，见「已知注意事项 → my-window-pip」 |
 | `jhentai` | 8.0.16+334 | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），通用二进制，下载与本地书库齐全。**上游标明 macOS 构建「无维护」**。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；且它是沙箱应用，数据全在容器里，`zap` 只清可再生的部分，见「已知注意事项 → jhentai」 |
+| `nigate` | 1.4.5 | [hoochanlon/Free-NTFS-for-Mac](https://github.com/hoochanlon/Free-NTFS-for-Mac) | NTFS 读写挂载管理器（Electron），arm64 / intel 双架构。⚠️ 装完必须重签名（与 `splayer-next` 同族）；它的「一键装依赖」会用管理员权限从 CDN 拉脚本装 / **删 macFUSE**，本机已有 macFUSE / ntfs-3g 方案的先看「已知注意事项 → nigate」再按那两个按钮 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
 | `font-lxgw-wenkai-mono-gb-screen` | 1.522 | 同上 | 等宽屏幕阅读版 GB 版 |
 
-> `micyou` / `splayer-next` / `lume-app` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来；机器上已配了 LaunchAgent 自动做这件事，见「签名不一致 → 自动修复」。
+> `micyou` / `splayer-next` / `lume-app` / `nigate` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来；机器上已配了 LaunchAgent 自动做这件事，见「签名不一致 → 自动修复」。
 
 
 > 屏幕阅读版与主版「霞鹜文楷」的区别：字重由 Medium 改为 Regular 并调整度量数据，PC / 手机屏幕上更清晰。上游只提供裸 `.ttf`（没有压缩包），所以 4 个变体各自一个 cask —— 一个 cask 只能带一组 `url` / `sha256`。只想要其中一个的话装对应的即可。
@@ -87,7 +88,8 @@ brew uninstall --cask --zap splayer-next
 │   │   ├── micyou.rb
 │   │   └── my-window-pip.rb
 │   ├── n/
-│   │   └── netcatty.rb
+│   │   ├── netcatty.rb
+│   │   └── nigate.rb
 │   ├── r/
 │   │   └── reinplayer.rb
 │   ├── s/
@@ -129,8 +131,8 @@ $EDITOR Casks/<首字母>/<name>.rb
 - 顺序遵循 Cask Style Guide：`arch` → `version` → `sha256` → `url` → `name` → `desc` → `homepage` → `livecheck` → `depends_on` → `app` → `zap`
 - 上游产物有架构区分时，用 `arch arm: "arm64", intel: "x64"` 重定义 `arch`，再在 URL 里插值，避免写 `on_arm` / `on_intel` 两份
 - 上游只发**单一架构**时，直接 `depends_on arch: :arm64`（或 `:x86_64`），URL 里写死该架构即可
-- `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0` → `depends_on macos: :big_sur`）
-- `desc` 不重复包名、结尾不加句号、不超过 80 字符
+- `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0`）。但**低于 Homebrew 自身支持下限的版本号写了也白写**：`depends_on macos: :catalina` / `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant minimum、`brew style` 直接红，这种就改写成 `depends_on :macos`（`micyou` / `jhentai` / `nigate` 都是这样；别为了凑一个版本号去写更低的系统支持）
+- `desc` 不重复包名、结尾不加句号、不超过 80 字符，**也不要出现平台名**（写了 `macOS` 会被 `Cask/Desc` 判 `Description shouldn't contain the platform`）
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
 - **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app，判「已损坏」，必须重签）
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
@@ -322,9 +324,9 @@ end
 
 ## 已知上游问题
 
-### 签名不一致：`splayer-next` / `micyou` / `lume-app` 装完必须重签名
+### 签名不一致：`splayer-next` / `micyou` / `lume-app` / `nigate` 装完必须重签名
 
-两个应用带的是**同一类上游打包缺陷**：可执行文件是链接期 ad-hoc 签名（`codesign -dv` 显示 `Signature=adhoc` + `flags=0x2(adhoc,linker-signed)`），签名声明了「有密封资源」，但 `.app` 包体从未生成 `Contents/_CodeSignature`。macOS 读到这个自相矛盾就判定为损坏：
+这几个应用带的是**同一类上游打包缺陷**：可执行文件是链接期 ad-hoc 签名（`codesign -dv` 显示 `Signature=adhoc` + `flags=0x2(adhoc,linker-signed)`；`nigate` 是同一件事，只是多了 hardened runtime 位 `0x20002`），签名声明了「有密封资源」，但 `.app` 包体从未生成 `Contents/_CodeSignature`。macOS 读到这个自相矛盾就判定为损坏：
 
 ```text
 "SPlayer-Next.app" is damaged and can't be opened.
@@ -370,6 +372,7 @@ done
   <string>/Applications/SPlayer-Next.app</string>
   <string>/Applications/MicYou.app</string>
   <string>/Applications/Lume.app</string>
+  <string>/Applications/Nigate.app</string>
 </array>
 <key>StartInterval</key><integer>21600</integer>
 ```
@@ -427,6 +430,10 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 **Homebrew 会给 cask 产物打上 quarantine.** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
 
 **`reinplayer` 是 ad-hoc 签名，但签名本身自洽，不算「损坏」类缺陷。** 它是 Flutter 应用（带 FlutterMacOS / media_kit / mpv 等 30+ 框架），`codesign -v` 与 `codesign --verify --deep --strict` 都对全包退 0、`Contents/_CodeSignature` 存在 —— 但它**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那个列表只收「启动前必须重签」的坏签名 cask），因为 LaunchAgent 的判定门是 `codesign --verify --deep --strict`、而 reinplayer 这个门能过，修了也修不到 quarantine。真正的坑有两层：上游 `CFBundleIdentifier` 没改、停留在占位 `com.example.reinPlayer`；且整体 ad-hoc（无 Developer ID、未公证），而 Homebrew 装完会给 `.app` 打上 `com.apple.quarantine`（实测 `/Applications/rein_player.app` 装完确实带着）。quarantine + 无 Developer ID → 首次启动被 Gatekeeper 拦「无法验证的开发者」。Caveats 里给了 `xattr -dr com.apple.quarantine` 清隔离属性（或更省事：右键 → 打开 一次加入用户豁免；需要的话再 `codesign --force --deep --sign -` 重签），不设 `auto_updates`（ad-hoc 自更新不可靠，让 Homebrew 当升级渠道）。
+
+**`nigate` 属于「启动前必须重签」那一族**（micyou / splayer-next / lume-app）：可执行文件是 `flags=0x20002(adhoc,linker-signed)`，签名声明有密封资源，包里却没有 `Contents/_CodeSignature`，`codesign --verify` 直接报 `code has no resources but signature indicates they must be present`。`/Applications/Nigate.app` 已经同时加进 LaunchAgent 的 `WatchPaths` 和脚本的 `DEFAULT_APPS`，`repair.sh` 对它实测有效（重签后 `--verify --deep --strict` 退 0、quarantine 清掉）。另外它的 bundle id 是 `io.hoochanlon.github`（和 reinplayer 那个占位 id 一个味道），Electron 的 profile 目录用 `package.json` 的 `free-ntfs-for-mac`（没有 `productName`）—— 注意**整套 Chromium 状态都在这个目录里**（`Cache` / `Code Cache` / `Cookies` / `Local Storage` / 它自己的 `Preferences` 都在下面），所以 `~/Library/Caches/free-ntfs-for-mac`、`~/Library/Logs/...`、`~/Library/Preferences/io.hoochanlon.github.plist`、savedState 一个都不会生成（两次启动 + 正常退出实测皆无），`zap` 因此只有两条；第二条 `Caches/free-ntfs-for-mac-updater` 是包内 `app-update.yml` 的 `updaterCacheDirName` 声明的，要等更新器真下载东西才出现，与 `ztools` 同理保留。两片 minos 也不同（arm64 `11.0`、x86_64 `10.15`，`LSMinimumSystemVersion` 写 10.15）—— 都低于 Homebrew 自己支持的下限，所以 `depends_on macos: :big_sur` 和 `:catalina` 都会被判 redundant，只能写 `depends_on :macos`。
+
+**`nigate` 的依赖是系统级的，这点和别的 cask 不是一回事。** NTFS 读写不来自它本体，而是 macFUSE + ntfs-3g：它的「一键安装 / 卸载依赖」是在打包进来的 `node-pty` 终端里跑 jsdelivr 上的 `ninja/kunai.sh` / `ninja/ninpo.sh`（`curl | bash`），要管理员权限。两件事要注意 —— 一是 **`ninpo.sh` 会把 macFUSE 从系统里摘掉**，本机那条 SwiftBar + ntfs-3g 的路线还依赖 macFUSE，别顺手点卸载；二是 Apple Silicon 上装 macFUSE 还要进 Recovery 改安全策略。也就是说 cask 只解决「app 本体 + 重签名」，驱动那一层是它自己在跑脚本装。上游也不随包发校验文件，两个架构的 sha 只有各自下载实测这一个来源（Intel 包已确认是 x86_64 thin、同为 1.4.5）。最后：v1.4.5 发布于 2026-01-23，上游 README 让人去 `/tags` 下载，但 `releases/latest` 指的就是它，livecheck 与 autobump 不受影响。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
