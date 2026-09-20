@@ -20,8 +20,7 @@ cask "jhentaix" do
   # This fork keeps upstream's bundle id and app name, so it installs the very same
   # `jhentai.app` into the same place as the `jhentai` cask. The two are alternatives,
   # not a stack: uninstall one before installing the other.
-  conflicts_with cask: "jhentai",
-                 because: "both provide jhentai.app with bundle id top.jtmonster.jhentai"
+  conflicts_with cask: "jhentai"
 
   app "jhentai.app"
 
