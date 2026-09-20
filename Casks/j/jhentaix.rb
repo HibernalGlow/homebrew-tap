@@ -15,12 +15,11 @@ cask "jhentaix" do
     strategy :github_latest
   end
 
-  depends_on :macos
-
   # This fork keeps upstream's bundle id and app name, so it installs the very same
   # `jhentai.app` into the same place as the `jhentai` cask. The two are alternatives,
   # not a stack: uninstall one before installing the other.
   conflicts_with cask: "jhentai"
+  depends_on macos: :monterey
 
   app "jhentai.app"
 
