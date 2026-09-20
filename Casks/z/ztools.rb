@@ -22,19 +22,17 @@ cask "ztools" do
   uninstall quit: "top.z-tools"
 
   # 3.x redirects Electron's `userData` to `~/.ztools` (`setPath("userData", ...)`
-  # in the main entry), so plugins, clipboard history and the lmdb stores all
-  # live there; `Application Support/ZTools` is the pre-3.x location left behind
-  # by an upgrade. `~/.ztools` is where installed plugins end up, so `--zap`
-  # removes them too.
+  # in the main entry), so the Chromium profile, the plugins (`plugins/`),
+  # clipboard history and the lmdb stores all live there -- which is why there is
+  # no `~/Library/Caches/ZTools`: observed after a real launch and quit.
+  # `Application Support/ZTools` is created empty, before the redirect kicks in.
+  # `Caches/ztools-updater` is the name upstream declares in the bundle's own
+  # `app-update.yml`; it appears once the in-app updater downloads something.
   zap trash: [
     "~/.ztools",
     "~/Library/Application Support/ZTools",
-    "~/Library/Caches/ZTools",
     "~/Library/Caches/ztools-updater",
-    "~/Library/HTTPStorages/top.z-tools",
-    "~/Library/Logs/ZTools",
     "~/Library/Preferences/top.z-tools.plist",
-    "~/Library/Saved Application State/top.z-tools.savedState",
   ]
 
   caveats do

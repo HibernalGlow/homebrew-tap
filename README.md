@@ -57,6 +57,9 @@ brew uninstall --cask --zap splayer-next
 | `lume-app` | 1.2.0 | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机），universal 二进制。⚠️ 装完需重签名，见「已知上游问题」 |
 | `reinplayer` | 1.1.0 | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit），universal 二进制。上游 ad-hoc 签名（无 Developer ID，bundle id 仍是占位 `com.example.reinPlayer`）；Homebrew 会给产物打 quarantine、首次启动会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine 即可，见「已知注意事项 → reinplayer」 |
 | `ztools` | 3.2.0 | [ZToolsCenter/ZTools](https://github.com/ZToolsCenter/ZTools) | 应用启动器 + 插件平台（类 uTools，Electron 41），arm64 / intel 双架构，需 macOS ≥ 12。签名与公证正常，装完即用；全局快捷键要单独授「辅助功能」权限 |
+| `clipp` | 1.5.0.160 | [martona/clipp](https://github.com/martona/clipp) | 局域网 P2P 剪贴板同步（文本 / 图片），同一个二进制兼作 `clipp copy` / `paste` CLI。**仅 arm64**，需 macOS ≥ 14。签名与公证正常，装完即用。上游自己有 tap（`martona/tap`），本 tap 这份补了 `quit` 和寄存器快照的 `zap` 路径，理由见「已知注意事项 → clipp」 |
+| `my-window-pip` | 0.1.7 | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，通用二进制，CPU 近零），需 macOS ≥ 14，必需「屏幕录制」权限。⚠️ 自签证书、未经 Apple 公证，首启会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine，见「已知注意事项 → my-window-pip」 |
+| `jhentai` | 8.0.16+334 | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），通用二进制，下载与本地书库齐全。**上游标明 macOS 构建「无维护」**。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；且它是沙箱应用，数据全在容器里，`zap` 只清可再生的部分，见「已知注意事项 → jhentai」 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -72,12 +75,17 @@ brew uninstall --cask --zap splayer-next
 ```
 .
 ├── Casks/
+│   ├── c/
+│   │   └── clipp.rb
 │   ├── f/
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
+│   ├── j/
+│   │   └── jhentai.rb
 │   ├── l/
 │   │   └── lume-app.rb
 │   ├── m/
-│   │   └── micyou.rb
+│   │   ├── micyou.rb
+│   │   └── my-window-pip.rb
 │   ├── n/
 │   │   └── netcatty.rb
 │   ├── r/
@@ -124,7 +132,11 @@ $EDITOR Casks/<首字母>/<name>.rb
 - `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0` → `depends_on macos: :big_sur`）
 - `desc` 不重复包名、结尾不加句号、不超过 80 字符
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
+- **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app，判「已损坏」，必须重签）
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
+- **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：jhentai 的缓存叫 `Caches/JHenTai` / `Caches/cacheimage`。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
+- **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样，见「已知注意事项 → jhentai」），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
+- **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。上游不发的（如 JHenTai）就照实说明只有一个来源
 - app 里若还打包了 CLI / TUI 可执行文件，用 `binary "#{appdir}/X.app/Contents/MacOS/x-cli", target: "x-cli"` 暴露出来
 
 ### 字体类 cask（`font-` token）
@@ -290,6 +302,24 @@ end
 
 > 注意：`brew style <tap>` 会用 rubocop-md 把 README 里的 Ruby 代码块也一起检查，所以文档中的 Ruby 片段同样要保持缩进与风格正确，否则 CI 会红。
 
+**tag 带 `+build` 后缀时，`strategy :github_latest` 会自己把后缀吃掉。** JHenTai 的 tag 是 `v8.0.16+334`、产物叫 `JHenTai-8.0.16+334.dmg`，但 `github_latest` 走的是 `GithubReleases::DEFAULT_REGEX`（`v?(\d+(?:\.\d+)+)`），到 `+` 就停，于是 livecheck 报 `8.0.16`。cask 里若照 tag 写全 `version "8.0.16+334"`，`brew audit` 直接失败：
+
+```text
+Version '8.0.16+334' differs from '8.0.16' retrieved by livecheck.
+```
+
+URL 又必须带后缀才拼得出产物，所以别把 `version` 缩成 `8.0.16`（那样 autobump 会把 URL 拼坏）。给 livecheck 自己那条正则，把整段 tag 抓回来：
+
+```ruby
+livecheck do
+  url :url
+  regex(/v(\d+(?:\.\d+)+\+\d+)/)
+  strategy :github_latest
+end
+```
+
+改完要两头验：`brew livecheck --cask <name>` 在版本号正确时报等值（`8.0.16+334 ==> 8.0.16+334`），把 `version` 临时改成上一个发布（`8.0.15+333`）时要报出升级（`==> 8.0.16+334`）—— 只验前者不够，等值可能只是「两边都被截断成同一个数」。`Version` 认 `+` 为修订号，所以 `8.0.16+333 < 8.0.16+334` 的比较是对的。
+
 ## 已知上游问题
 
 ### 签名不一致：`splayer-next` / `micyou` / `lume-app` 装完必须重签名
@@ -365,6 +395,18 @@ launchctl bootout gui/$(id -u)/com.hibernalglow.cask-sign-repair  # 卸载
 
 **`ztools` 的签名也是正常的，`auto_updates` 同样按上面这条判断没设。** `spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)`），`codesign --verify --deep --strict` 退 0，所以不进 Caveats 的修复流程、也不进 LaunchAgent 列表。updater 是 `electron-updater` 6.8.9（`updaterCacheDirName: ztools-updater`），但代码里 `autoDownload = false` 且 `autoInstallOnAppQuit = false` —— 和 netcatty 一样的「提示模型」，因此升级渠道留给 Homebrew。`depends_on macos: :monterey` 取自二进制的 `LC_BUILD_VERSION`（`minos 12.0`），与 `Info.plist` 的 `LSMinimumSystemVersion` 恰好一致。Caveats 里只有辅助功能权限这一条：它靠 `uiohook-napi` 监听全局快捷键，未授权时快捷键没有反应（上游文案原话是「需要辅助功能权限来响应快捷键并完成键盘与窗口操作」）。应用自己有引导页，也有「重置辅助功能权限」入口，用于升级后 macOS 留着过期授权记录的情况。
 
+**`clipp` 的两点特殊性。** 一是**上游自己就发 cask**（README 里写 `brew install martona/tap/clipp`），本 tap 仍收一份：token 各自独立、装了互不冲突，代价只是多一份被 autobump / CI 跟踪的对象，换的是「一个 tap 装齐」的顺手 —— 但要清楚这是在替上游维护，上游那份少列了 `~/Library/Application Support/net.clipp.ios`（`keyvend.sock` 所在，实测启动后就有）与 `~/Library/Application Support/Clipp`（`DataPaths.mm` 定死的加密寄存器快照，装好组之后才出现），也少了 `uninstall quit:`（菜单栏应用）。抄上游文件前先跑 `brew style`：它的 `homepage "https://clipp.net"` 会被 `Cask/HomepageUrlStyling` 判 offense（域名后必须带 `/`）。二是**产物名里没有版本号**（`clipp-macos-arm64.zip`，上游 README 明说链接永远指向最新），看着违反上面「产物文件名带版本号」的前提，其实没有：URL 把版本放在 release tag 那一段（`download/v#{version}/…`），`strategy :github_latest` 读的也是 tag 而非文件名，livecheck / autobump 照常工作。`version` 因此取 tag 的四段式 `1.5.0.160`（= `CFBundleVersion`），不是 `CFBundleShortVersionString` 的 `1.5.0`。残余风险只有一个：上游原地重传同 tag 产物时 sha 会变而版本号不动 —— 该项目每个产物都有 Sigstore attestation，且 `SHA256SUMS.txt` 与 cask 里的 sha 实测对得上。macOS 14 是上游的测试口径而非功能需求（脚注原话「The 14 floor is arbitrary; I just don't have older Macs」），`LSMinimumSystemVersion` 与二进制 `minos` 都写 14.0，所以 `depends_on macos: :sonoma` 照 14 报，别猜更低。
+
+**`my-window-pip` 属于 reinplayer 那一类：签名自洽，但没公证。** `codesign -dvvv` 给的是 `Authority=MyWindowPip Release Signing`、`TeamIdentifier=not set`、`flags=0x0(none)` —— 上游 README 自己写明是**自签证书、未经 Apple 公证**。但 `Contents/_CodeSignature` 在、`codesign --verify --deep --strict` 退 0，所以它不是「损坏」，macOS 报的是「无法验证的开发者」而不是「已损坏」；同理它的判定门能过，**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那里只收必须重签的坏包），Caveats 给的是清 quarantine（或右键 → 打开 一次）。另外它必需的「屏幕录制」授权按**固定路径 + 固定签名身份**存活，cask 装进 `appdir` 正好对上，上游那句「别从 DMG / 下载目录直接跑」正是这个原因。
+
+> **别拿本机的 `spctl -a` 当公证证据。** 这台机器 `spctl --status` 是 `assessments disabled`，所以任何包都会回 `accepted` —— my-window-pip 就是这样，`accepted` 但 `origin=` 后面跟的是自签身份、**没有** `source=Notarized Developer ID` 那一行。判断顺序应该是：先 `codesign -dvvv` 读 `Authority` / `TeamIdentifier`，再看 `spctl -a -vvv` 有没有 `source=Notarized Developer ID`；只有后者出现才谈得上公证，netcatty / ztools 那份 accepted 才是真证据。
+
+**`my-window-pip` 也没设 `auto_updates`，这次是读了实现才确定的。** `Sources/my-window-pip/Updater.swift` 是手写的（`URLSession` + `CryptoKit` 校验上游随包发的 `.dmg.sha256`，无第三方依赖）：`checkSilently` 启动时只查询、回调里也只弹提示，下载要点「下载并安装」才开始，下完**打开挂载好的安装窗，由用户自己把 app 拖进 Applications** —— 典型的提示模型，后台不会静默换版本，所以升级渠道留给 Homebrew。`zap` 那四条的依据：应用自己写的只有 `Preferences.swift`（`UserDefaults.standard` 封装）和 `Log.swift`（`~/Library/Logs/MyWindowPip/MyWindowPip.log`，2 MB 滚动），`Caches` / `HTTPStorages` 两条是系统替它建的，四条都在**启动 + 退出**之后实测存在；上游 README 亦称捕获帧只在内存与显存、正常路径一个字都不写，所以这里没有任何用户内容。
+
+**`jhentai` 是沙箱应用，`zap` 的写法因此和别的都不一样。** `codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox`（**判断沙箱只认这个，别猜**），于是 Flutter 的 `path_provider` 拿到的都是容器内路径：一切都落在 `~/Library/Containers/top.jtmonster.jhentai/Data/`。更要紧的是 `PathService.getVisibleDir()` 在 macOS 上返回 `getApplicationDocumentsDirectory()`，而 `path_provider_foundation` 只对 Application Support / Caches 追加 bundle id 子目录、**Documents 不追加**（见其 `_getDirectoryPath`）—— 所以 `db.sqlite`（书库）、`jhentai.gs`（设置）、`logs/`、`download/`（下载的作品）是平铺在 `Data/Documents/` 里的。整容器删就等于删用户下载，违反「`--zap` 不碰用户内容」这条（同 `lume-app` 不列 VM 镜像），所以这里只列可再生项，连登录态一起清的口子留给用户自己（Caveats 里给了容器目录）。以上跑过真机：启动 + 退出后 `Data/Documents/` 里确实是 `jhentai.gs` / `jhentai.bak` / `jhentai.version` / `db.sqlite` / `logs` / `download` / `local_gallery` / `save` 平铺；`Data/Library/Preferences/` 下**没有**应用自己的 plist（设置不走 UserDefaults），图片缓存则在 `Data/Library/Caches/` 下叫 `JHenTai` / `cacheimage` / `flutter_engine` / `WebKit` —— **容器里的缓存目录名不一定等于 bundle id**，照 bundle id 猜会全部落空。另外上游 README 把 macOS / Linux 构建标成 **No maintenance**，autobump 提的升级 PR 要额外留意：新版本可能压根没人在 mac 上验过。
+
+`jhentai` 的签名与 `reinplayer` 同类（`Signature=adhoc`、`TeamIdentifier=not set`，还带 `com.apple.security.get-task-allow`，这条本身就与公证冲突），Caveats 给清 quarantine，不进 LaunchAgent 列表。两点附带提醒：它的 tag 带 `+334` 这种构建号，livecheck 要按上文「tag 带 `+build` 后缀」那条补正则，否则 `brew audit` 会因版本号被截断而失败；`depends_on` 也别照二进制直写 —— 两片 minos 不同（x86_64 `10.15`、arm64 `11.0`），写 `depends_on macos: :catalina` 会被 `Homebrew/OSDependsOn` 判 redundant minimum 让 `brew style` 变红，正确写法就是 `depends_on :macos`。
+
 **Electron 应用的 `zap` 路径用应用名，不是 bundle id。** `netcatty` 的数据在 `~/Library/Application Support/netcatty`（`electron-updater` 的缓存在 `~/Library/Caches/netcatty-updater`）；这是 Electron 的规则 —— `userData` 取 `package.json` 的 `productName`，没有则取 `name`。Netcatty 打包后的 `package.json` 没有 `productName`，所以落成应用名 `netcatty`。对照 Tauri 应用（如同机的 `flclash`）走的是 bundle id，形如 `~/Library/Application Support/com.follow.clash`。**写 `zap` 前先确认走的是哪一套**，否则路径全错：
 
 ```sh
@@ -378,7 +420,7 @@ npx --yes @electron/asar extract-file "/Applications/App.app/Contents/Resources/
 ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 ```
 
-**上面这条规则只对「没改过 `userData`」的 Electron 应用成立。** `ztools` 就是反例：主进程入口一启动就调 `app.setPath("userData", ~/.ztools)`（可用 `ZTOOLS_DATA_ROOT` 覆盖），插件、剪贴板历史、lmdb 索引全落在家目录那个隐藏文件夹里，`~/Library/Application Support/ZTools` 只是 3.x 之前的老位置（代码里叫 `legacyUserDataPath`，留着做迁移）。所以它的 `zap` 第一项是 `~/.ztools`，其余按 bundle id `top.z-tools` / 应用名 `ZTools` 拼。判断方法：在 `app.asar` 里搜 `setPath("userData"`，命中就不能照抄应用名。
+**上面这条规则只对「没改过 `userData`」的 Electron 应用成立。** `ztools` 就是反例：主进程入口一启动就调 `app.setPath("userData", ~/.ztools)`（可用 `ZTOOLS_DATA_ROOT` 覆盖），Chromium 的整套 profile、插件、剪贴板历史、lmdb 索引全落在家目录那个隐藏文件夹里，所以 `~/Library/Caches/ZTools` 这类路径**根本不会出现**（启动并退出后实测：不存在）。`~/Library/Application Support/ZTools` 会建，但是个空目录 —— 那是 Electron 在重定向生效前先算默认路径时留下的，不是老版本升级遗留（本 tap 早先的判断，实测后改掉）。判断方法：在 `app.asar` 里搜 `setPath("userData"`，命中就不能照抄应用名。
 
 > 代价是 `brew uninstall --cask --zap ztools` 会连用户自己装的插件（`~/.ztools/plugins`）和剪贴板历史一起删 —— 这符合 `--zap` 的语义，但想保住插件就别加 `--zap`。同一类取舍的另一个方向见 `lume-app`：那里刻意没把用户的 VM 镜像列进 `zap`。
 
