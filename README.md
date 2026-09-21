@@ -63,6 +63,7 @@ brew uninstall --cask --zap splayer-next
 | `nigate` | 1.4.5 | [hoochanlon/Free-NTFS-for-Mac](https://github.com/hoochanlon/Free-NTFS-for-Mac) | NTFS 读写挂载管理器（Electron），arm64 / intel 双架构。⚠️ 装完必须重签名（与 `splayer-next` 同族）；它的「一键装依赖」会用管理员权限从 CDN 拉脚本装 / **删 macFUSE**，本机已有 macFUSE / ntfs-3g 方案的先看「已知注意事项 → nigate」再按那两个按钮 |
 | `rawviewer` | 0.1.1 | [stmtc233/RawViewer](https://github.com/stmtc233/RawViewer) | RAW 照片浏览器（Flutter + LibRaw），通用二进制，需 macOS ≥ 12。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；沙箱应用且 bundle id 还是 Flutter 占位 `com.example.rawviewer`，见「已知注意事项 → rawviewer」 |
 | `folia` | 0.7.7 | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron），arm64 / intel 双架构，需 macOS ≥ 12。⚠️ 装完必须重签名（与 `micyou` 同族）；**应用内那个「自动更新」别开**，见「已知注意事项 → folia」 |
+| `arcthumb` | 0.12.0 | [HibernalGlow/ArcThumbX](https://github.com/HibernalGlow/ArcThumbX) | 压缩包 / 电子书封面的 Quick Look 缩略图扩展（Rust + Slint），arm64 / intel 双包，同一个二进制兼作 CLI（`arcthumb --get` / `--regenerate`）。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**光装不生效**，还要用 `pluginkit` 注册并启用，见「已知注意事项 → arcthumb」
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -78,6 +79,8 @@ brew uninstall --cask --zap splayer-next
 ```
 .
 ├── Casks/
+│   ├── a/
+│   │   └── arcthumb.rb
 │   ├── c/
 │   │   └── clipp.rb
 │   ├── f/
@@ -138,9 +141,10 @@ $EDITOR Casks/<首字母>/<name>.rb
 - `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0`）。但**低于 Homebrew 自身支持下限的版本号写了也白写**：`depends_on macos: :catalina` / `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant minimum、`brew style` 直接红，这种就改写成 `depends_on :macos`（`micyou` / `jhentai` / `nigate` 都是这样；别为了凑一个版本号去写更低的系统支持）
 - `desc` 不重复包名、结尾不加句号、不超过 80 字符，**也不要出现平台名**（写了 `macOS` 会被 `Cask/Desc` 判 `Description shouldn't contain the platform`）
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
-- **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app / nigate / folia，判「已损坏」，必须重签）
+- **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai / arcthumb 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app / nigate / folia，判「已损坏」，必须重签）
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
 - **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：jhentai 的缓存叫 `Caches/JHenTai` / `Caches/cacheimage`。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
+- **装上不等于生效的那类（扩展 / 驱动）只写 Caveats**：需要 `pluginkit -a` / `-e use`、`systemextensionsctl` 之类激活的 cask，把命令原样放进 Caveats 并给出「谁在供这个功能」的查法（`arcthumb` 的实测教训：旧路径的注册会盖住新装的这份），不要为了省事改成 `postflight`
 - **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样，见「已知注意事项 → jhentai」），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
 - **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。**上游不发的也没关系：GitHub 自己为每个 asset 存了 sha256**，`gh api repos/<owner>/<repo>/releases/latest --jq '.assets[] | .name + " " + (.digest // "no-digest")'` 直接给（值带 `sha256:` 前缀；clipp / rawviewer 实测对得上）。注意它只证明「这个 URL 拿到的字节就是 GitHub 上挂的那个 asset」，不能替上游发布环节背书；两处都拿不到的（如 JHenTai）就照实说明只有一个来源
 - app 里若还打包了 CLI / TUI 可执行文件，用 `binary "#{appdir}/X.app/Contents/MacOS/x-cli", target: "x-cli"` 暴露出来
@@ -460,6 +464,10 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 **`folia` 是「上游根本没打算签名」的典型。** 三个 mac workflow 全设 `CSC_IDENTITY_AUTO_DISCOVERY: false`（连找身份都不找），产物就是 linker-signed ad-hoc + 没有 `Contents/_CodeSignature`，`codesign --verify --deep --strict` 报 `code has no resources but signature indicates they must be present` —— 与 micyou / lume-app 同族，`/Applications/Folia.app` 已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。上游自己有一篇 `docs/desktop/macos-app-damaged.md`，给的三招是右键打开 / 「仍要打开」/ 清 quarantine，但那台机器上 Gatekeeper 是关着的，**「只清隔离属性够不够」在这边复现不了**，所以按本仓口径仍归到必须重签那一类。`zap` 三条是看着进程验过的：`Application Support/Folia` 里是整套 Chromium profile（`Cache` / `Cookies` / `Local Storage` / `IndexedDB` / 自己的 `Preferences`），而 `Caches/Folia`、`Logs/Folia`、`HTTPStorages/<bundle id>`、saved state 从启动到正常退出全没出现；`Caches/folia-major-updater` 是包内 `app-update.yml` 声明的 `updaterCacheDirName`，只有更新器真下载才会出现，照 `ztools` 的先例保留。注意 `--zap` 会把本地音乐库的索引清掉（存的是曲目路径，音乐文件本身不动）。
 
 `auto_updates` 依旧没设，两层理由：`electron/main.cjs` 里 `autoDownload = false`、`autoInstallOnAppQuit = false`、应用内自动更新是 `ENABLE_AUTO_UPDATE_SETTING_KEY` 的 opt-in、`quitAndInstall` 由界面点出来 —— 形态上是 netcatty 那种提示模型；而**真把那个开关打开也不会成功**：Squirrel.Mac 靠签名一致性装更新，ad-hoc 包不满足，所以 Caveats 里直接写「别开应用内更新，升级走 brew」。发布通道这块是本仓第一种「latest 与 prerelease 混排」的形状：稳定版是 `v0.7.7` 这种 semver tag，而 `limo` / `cielo` / `cielo-wip-…` 全是 **prerelease**（nightly / canary，各自带 `beta.yml` / `alpha.yml`），`strategy :github_latest` 只认非 prerelease 的 latest，所以 autobump 不会被 nightly 带走 —— 与「tag 不带版本号」那类问题不同，不用加 `regex`。
+
+**`arcthumb` 是本仓第一个「装上 ≠ 生效」的 cask。** 它是 Quick Look 缩略图扩展（`com.apple.quicklook.thumbnail`），扩展必须被注册并启用才会出现在 Finder 里：上游自己的 `macos/README.md` 就写明 `lsregister` 单独用不够，要 `pluginkit -a <appex>` + `pluginkit -e use -i com.citrussoda.ArcThumb.thumbnail` + `qlmanage -r cache`。这两条**只进 Caveats**，不做成 `postflight` —— 理由就是上面「不要用 install steps 给上游打补丁」那节（沙箱套不上时会把刚解包的 app 删掉）。实测还抓到一个真实坑：**Quick Look 的注册是按路径记的**，这台机器上留有一条指向 `~/Applications/ArcThumb.app` 的 0.11.0 旧注册（`+` = 已启用），于是新装进 `/Applications` 的 0.12.0 看起来完全没作用；只有 `pluginkit -m -v -i <id>` 能看出是谁在供缩略图。查法与 `pluginkit -r` 的解法已写进 Caveats（本次没替机器清旧注册，那是开发者自己的工作副本）。
+
+数据面与校验：扩展是沙箱的，设置**只写一个文件** —— `~/Library/Containers/com.citrussoda.ArcThumb.thumbnail/Data/Library/Application Support/ArcThumb/settings`，上游明确说不用 `UserDefaults`（非沙箱的 helper 写不进沙箱的偏好域），实测 `~/Library/Preferences/com.citrussoda.ArcThumb.plist` 与 `~/Library/Application Support/ArcThumb` 都不存在，所以 `zap` 就容器那一条，和上游 uninstall 里的 `rm -rf` 完全一致。两个架构各做了**三重对照**：上游随包发的 `.sha256` + GitHub asset digest + 本地 `shasum` 全等，且分别挂包核对内层 Mach-O 是 arm64 / x86_64 thin、两片 `minos` 都是 11.0 并与 `LSMinimumSystemVersion` 一致 —— 11.0 恰好等于 Homebrew 自己的支持下限，于是 `depends_on macos: :big_sur` 会被判 redundant、`audit_min_os` 也提前返回，这里就写 `depends_on :macos`。签名是 ad-hoc 但自洽（app 与 appex 的 `--verify --deep --strict` 都退 0），属清 quarantine 那一类，不进 LaunchAgent 列表。`homepage` 暂用仓库地址：产品页 `https://citrussoda.com/en/arcthumb` 从本机 TLS 直接 `SSL_ERROR_SYSCALL`，`brew audit --online` 会因为不可达失败；等接入 Developer ID + 公证（仓库有 `MACOS_SIGN_IDENTITY` 这个开关，没设）之后可以换回去。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
