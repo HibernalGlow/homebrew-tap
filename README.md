@@ -61,6 +61,7 @@ brew uninstall --cask --zap splayer-next
 | `my-window-pip` | 0.1.7 | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，通用二进制，CPU 近零），需 macOS ≥ 14，必需「屏幕录制」权限。⚠️ 自签证书、未经 Apple 公证，首启会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine，见「已知注意事项 → my-window-pip」 |
 | `jhentai` | 8.0.16+334 | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），通用二进制，下载与本地书库齐全。**上游标明 macOS 构建「无维护」**。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；且它是沙箱应用，数据全在容器里，`zap` 只清可再生的部分，见「已知注意事项 → jhentai」 |
 | `nigate` | 1.4.5 | [hoochanlon/Free-NTFS-for-Mac](https://github.com/hoochanlon/Free-NTFS-for-Mac) | NTFS 读写挂载管理器（Electron），arm64 / intel 双架构。⚠️ 装完必须重签名（与 `splayer-next` 同族）；它的「一键装依赖」会用管理员权限从 CDN 拉脚本装 / **删 macFUSE**，本机已有 macFUSE / ntfs-3g 方案的先看「已知注意事项 → nigate」再按那两个按钮 |
+| `rawviewer` | 0.1.1 | [stmtc233/RawViewer](https://github.com/stmtc233/RawViewer) | RAW 照片浏览器（Flutter + LibRaw），通用二进制，需 macOS ≥ 12。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；沙箱应用且 bundle id 还是 Flutter 占位 `com.example.rawviewer`，见「已知注意事项 → rawviewer」 |
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -91,6 +92,7 @@ brew uninstall --cask --zap splayer-next
 │   │   ├── netcatty.rb
 │   │   └── nigate.rb
 │   ├── r/
+│   │   ├── rawviewer.rb
 │   │   └── reinplayer.rb
 │   ├── s/
 │   │   └── splayer-next.rb
@@ -138,7 +140,7 @@ $EDITOR Casks/<首字母>/<name>.rb
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
 - **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：jhentai 的缓存叫 `Caches/JHenTai` / `Caches/cacheimage`。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
 - **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样，见「已知注意事项 → jhentai」），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
-- **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。上游不发的（如 JHenTai）就照实说明只有一个来源
+- **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。**上游不发的也没关系：GitHub 自己为每个 asset 存了 sha256**，`gh api repos/<owner>/<repo>/releases/latest --jq '.assets[] | .name + " " + (.digest // "no-digest")'` 直接给（值带 `sha256:` 前缀；clipp / rawviewer 实测对得上）。注意它只证明「这个 URL 拿到的字节就是 GitHub 上挂的那个 asset」，不能替上游发布环节背书；两处都拿不到的（如 JHenTai）就照实说明只有一个来源
 - app 里若还打包了 CLI / TUI 可执行文件，用 `binary "#{appdir}/X.app/Contents/MacOS/x-cli", target: "x-cli"` 暴露出来
 
 ### 字体类 cask（`font-` token）
@@ -434,6 +436,10 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 **`nigate` 属于「启动前必须重签」那一族**（micyou / splayer-next / lume-app）：可执行文件是 `flags=0x20002(adhoc,linker-signed)`，签名声明有密封资源，包里却没有 `Contents/_CodeSignature`，`codesign --verify` 直接报 `code has no resources but signature indicates they must be present`。`/Applications/Nigate.app` 已经同时加进 LaunchAgent 的 `WatchPaths` 和脚本的 `DEFAULT_APPS`，`repair.sh` 对它实测有效（重签后 `--verify --deep --strict` 退 0、quarantine 清掉）。另外它的 bundle id 是 `io.hoochanlon.github`（和 reinplayer 那个占位 id 一个味道），Electron 的 profile 目录用 `package.json` 的 `free-ntfs-for-mac`（没有 `productName`）—— 注意**整套 Chromium 状态都在这个目录里**（`Cache` / `Code Cache` / `Cookies` / `Local Storage` / 它自己的 `Preferences` 都在下面），所以 `~/Library/Caches/free-ntfs-for-mac`、`~/Library/Logs/...`、`~/Library/Preferences/io.hoochanlon.github.plist`、savedState 一个都不会生成（两次启动 + 正常退出实测皆无），`zap` 因此只有两条；第二条 `Caches/free-ntfs-for-mac-updater` 是包内 `app-update.yml` 的 `updaterCacheDirName` 声明的，要等更新器真下载东西才出现，与 `ztools` 同理保留。两片 minos 也不同（arm64 `11.0`、x86_64 `10.15`，`LSMinimumSystemVersion` 写 10.15）—— 都低于 Homebrew 自己支持的下限，所以 `depends_on macos: :big_sur` 和 `:catalina` 都会被判 redundant，只能写 `depends_on :macos`。
 
 **`nigate` 的依赖是系统级的，这点和别的 cask 不是一回事。** NTFS 读写不来自它本体，而是 macFUSE + ntfs-3g：它的「一键安装 / 卸载依赖」是在打包进来的 `node-pty` 终端里跑 jsdelivr 上的 `ninja/kunai.sh` / `ninja/ninpo.sh`（`curl | bash`），要管理员权限。两件事要注意 —— 一是 **`ninpo.sh` 会把 macFUSE 从系统里摘掉**，本机那条 SwiftBar + ntfs-3g 的路线还依赖 macFUSE，别顺手点卸载；二是 Apple Silicon 上装 macFUSE 还要进 Recovery 改安全策略。也就是说 cask 只解决「app 本体 + 重签名」，驱动那一层是它自己在跑脚本装。上游也不随包发校验文件，两个架构的 sha 只有各自下载实测这一个来源（Intel 包已确认是 x86_64 thin、同为 1.4.5）。最后：v1.4.5 发布于 2026-01-23，上游 README 让人去 `/tags` 下载，但 `releases/latest` 指的就是它，livecheck 与 autobump 不受影响。
+
+**`rawviewer` 把「沙箱里缓存目录名不等于 bundle id」这条推到了极端：全程只留下两个路径。** 容器 `~/Library/Containers/com.example.rawviewer/` 在启动时创建；从启动 → 打开一张图 → 正常退出一路看着，`Data/Library/Caches/` 里只有 `flutter_engine`，`Data/Library/Preferences/com.example.rawviewer.plist` 真实写入（`shared_preferences` 的 `flutter.*` 键）—— 而 `path_provider` 虽然挂在依赖里，`Caches/<bundle id>` 和 `Application Support/<bundle id>` **一次都没出现**，HTTPStorages / WebKit / saved state 也没有。所以 `zap` 只有两条，比按惯例写的五条少三条 —— 多出来的那三条正是 jhentai 那轮被实测推翻的同一种形状。顺带一条隐私向的观察：plist 里 `flutter.recent_open_items` 存的是**用户照片的真实完整路径**（还有 `NSNavLastRootDirectory`），`--zap` 会把它一起清掉。
+
+上游缺陷与判定：bundle id 停在 Flutter 占位值 `com.example.rawviewer`（和 `reinplayer` 的 `com.example.reinPlayer` 同一类），容器目录与文件关联全挂在它上面，值得去开 issue；签名是 ad-hoc、未公证，但 `Contents/_CodeSignature` 在、`--verify --deep --strict` 退 0 → 属清 quarantine 那一类，**不进** LaunchAgent 列表。`auto_updates` 没设的依据：`lib/core/update_checker.dart` 只 `GET api.github.com/repos/stmtc233/rawviewer/releases/latest`（10 秒超时，fetcher 可注入便于测试），整个文件没有下载 / 安装 / `Process` 调用 —— 连提示模型都算不上，只是告知有新版本。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
