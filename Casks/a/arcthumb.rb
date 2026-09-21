@@ -19,8 +19,10 @@ cask "arcthumb" do
 
   app "ArcThumb.app"
   # The same binary is the Slint settings window and a headless switchboard:
-  # `arcthumb --get`, `--regenerate`, `--log-on`, `--lang zh|en|ja`.
-  binary "#{appdir}/ArcThumb.app/Contents/MacOS/ArcThumb"
+  # `arcthumb --get`, `--regenerate`, `--log-on`, `--lang zh|en|ja`. The target
+  # name is spelled out because the executable is `ArcThumb`, and linking that
+  # verbatim would put a capitalised command on the PATH.
+  binary "#{appdir}/ArcThumb.app/Contents/MacOS/ArcThumb", target: "arcthumb"
 
   uninstall quit: "com.citrussoda.ArcThumb"
 
