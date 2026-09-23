@@ -65,6 +65,7 @@ brew uninstall --cask --zap splayer-next
 | `folia` | 0.7.8 | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron），arm64 / intel 双架构，需 macOS ≥ 12。⚠️ 装完必须重签名（与 `micyou` 同族）；**应用内那个「自动更新」别开**，见「已知注意事项 → folia」 |
 | `arcthumb` | 0.12.0 | [HibernalGlow/ArcThumbX](https://github.com/HibernalGlow/ArcThumbX) | 压缩包 / 电子书封面的 Quick Look 缩略图扩展（Rust + Slint），arm64 / intel 双包，同一个二进制兼作 CLI（`arcthumb --get` / `--regenerate`）。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**光装不生效**，还要用 `pluginkit` 注册并启用，见「已知注意事项 → arcthumb」
 | `status-trio` | 1.3.1 | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用，通用二进制，需 macOS ≥ 15。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**本 tap 第一个设 `auto_updates` 的 cask**，理由见「已知注意事项 → status-trio」
+| `pelmet` | 0.8.1 | [ismatBabirli/pelmet](https://github.com/ismatBabirli/pelmet) | 菜单栏整理器，把被刘海吞掉的图标收进 Shelf；**签名与公证齐备、装完即用**，通用性上**只发 arm64**，需 macOS ≥ 13。带 Sparkle 原地自更新 → 设了 `auto_updates`。上游自己有 tap（`ismatBabirli/pelmet`），差异见「已知注意事项 → pelmet」
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -97,6 +98,8 @@ brew uninstall --cask --zap splayer-next
 │   ├── n/
 │   │   ├── netcatty.rb
 │   │   └── nigate.rb
+│   ├── p/
+│   │   └── pelmet.rb
 │   ├── r/
 │   │   ├── rawviewer.rb
 │   │   └── reinplayer.rb
@@ -143,7 +146,7 @@ $EDITOR Casks/<首字母>/<name>.rb
 - `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0`）。但**低于 Homebrew 自身支持下限的版本号写了也白写**：`depends_on macos: :catalina` / `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant minimum、`brew style` 直接红，这种就改写成 `depends_on :macos`（`micyou` / `jhentai` / `nigate` 都是这样；别为了凑一个版本号去写更低的系统支持）
 - `desc` 不重复包名、结尾不加句号、不超过 80 字符，**也不要出现平台名**（写了 `macOS` 会被 `Cask/Desc` 判 `Description shouldn't contain the platform`）
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
-- **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai / arcthumb 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app / nigate / folia，判「已损坏」，必须重签）
+- **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp / pelmet，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai / arcthumb 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app / nigate / folia，判「已损坏」，必须重签）
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
 - **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：jhentai 的缓存叫 `Caches/JHenTai` / `Caches/cacheimage`。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
 - **装上不等于生效的那类（扩展 / 驱动）只写 Caveats**：需要 `pluginkit -a` / `-e use`、`systemextensionsctl` 之类激活的 cask，把命令原样放进 Caveats 并给出「谁在供这个功能」的查法（`arcthumb` 的实测教训：旧路径的注册会盖住新装的这份），不要为了省事改成 `postflight`
@@ -474,6 +477,14 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 **`status-trio` 是本 tap 第一个写 `auto_updates true` 的 cask，判据要跟前面几条对齐清楚。** 前面 netcatty / ztools / clipp 都**没**设，依据是「应用不会绕过 Homebrew 把自己换掉」：它们的 `electron-updater` 都是 `autoDownload = false` + `autoInstallOnAppQuit = false`，走到最后一步是把挂载好的安装窗丢给你、由人拖进 `/Applications`，等同手动安装。Status Trio 不一样，它带的是完整 Sparkle 2（`SUFeedURL` 指向仓库里的 `appcast.xml`、`SUPublicEDKey` 有值、`SUEnableInstallerLauncherService` 开着），用户在更新窗点一下 Install Update 就是**原地替换 bundle**：那时 tap 里的 `version` 还指着旧号，`brew outdated` 会一直报一个已经装不存在的升级。所以判据是同一句 —— **会不会自己换掉 bundle** —— 只是这里的答案是「会」，于是设标记、并在 Caveats 里写清副作用：设了 `auto_updates` 之后 brew 不再提醒升级，应用自己升过一轮后要跑 `brew upgrade --cask status-trio` 把元数据对齐，或者干脆在设置里关掉更新检查。
 
 其余都按老规矩验过：两片 `minos` 都是 15.0、与 `LSMinimumSystemVersion` 一致（`depends_on macos: :sequoia`，`audit_min_os` 不会挑刺）；sha256 三重对照（上游随包发的 `.dmg.sha256` + GitHub asset digest + 本地 `shasum`）；签名 ad-hoc 但自洽（`_CodeSignature` 在、strict verify 退 0）→ 清 quarantine 那一类，不进 LaunchAgent。`zap` 两条是**启动 + 退出之后**才成立的：运行期间 `~/Library/Preferences/` 一个文件都不出现（cfprefsd 攒着），退出才落 `com.lingsmbp.StatusTrio.plist`，里面同时有应用设置和 Sparkle 的 `SUHasLaunchedBefore` —— 也就是说 **Sparkle 的偏好写在应用自己的域里**，我先前按惯例加的 `org.sparkle-project.Sparkle.plist` 是个不存在的猜测，已删。上游文档另外给了两条边界值得记：它不读也不存 Wi-Fi 密码（macOS 没有用已存密码连接的公开 API），也不为「立即充满」写 SMC 或塞特权 helper。
+
+**`pelmet` 是第二个设 `auto_updates true` 的 cask**，判据与 `status-trio` 同一条：`Contents/Frameworks/Sparkle.framework` 在那儿，用户点了 Install 就是**原地换 bundle**，tap 里的 `version` 当场过期（上游把它写得很明白：`SUAllowsAutomaticUpdates = false`、6 小时轮询、"explicit approval before Install and Relaunch"）。
+
+上游自己有 tap（`brew install --cask ismatBabirli/pelmet/pelmet`，仓库里的 `Casks/pelmet.rb` 是 canonical 源、release workflow 每次同步 `version` + `sha256`），所以收我们这份的唯一意义是那几处实测出来的差异：它的 cask **没有 `depends_on arch: :arm64`**，而产物实测只有 arm64 一片（dmg 和 zip 各 `lipo -archs` 一次都一样）→ Intel 用户装得上跑不了；没有 `auto_updates`；没有 `uninstall quit:`（菜单栏应用）；另外它写了 `verified:`，本仓不写（Homebrew 已废弃该参数）。这三条值得回上游一个 issue，发不发你说。
+
+公证这一项按前面那条规矩验：`codesign -dvvv` 有完整三级 `Authority`（Developer ID Application: Ismat Babirli (FBH9JL8MB9) → Certification Authority → Apple Root CA）加 `Notarization Ticket=stapled`，`spctl -a -vvv` 才打出 `source=Notarized Developer ID`。`minos 13.0` 与 `LSMinimumSystemVersion` 一致 → `:ventura`；sha256 三重对照（上游随包发的 `checksums.txt` + GitHub digest + 本地 `shasum`）。`zap` 里只有偏好 plist 是**启动 + 退出**实测落地的（里面同时存着应用设置、Sparkle 首启标记和 `lastAcknowledgedWhatsNewVersion`），其余三条照上游列表保留。
+
+> 一个容易看错的点：上游 README 说「不需要任何特殊权限」，那只针对隐藏 / 显示的主机制（撑宽分隔符把图标推出屏外，同 Hidden Bar / Dozer）。它**可选**的 one-click access 要辅助功能权限，本次首启就在偏好里写下了 `didPromptForAccessibility` / `awaitingOneClickGrant` —— 两句不矛盾，别据此判断它「说话不算数」。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
