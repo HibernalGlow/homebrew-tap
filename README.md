@@ -66,6 +66,7 @@ brew uninstall --cask --zap splayer-next
 | `arcthumb` | 0.12.0 | [HibernalGlow/ArcThumbX](https://github.com/HibernalGlow/ArcThumbX) | 压缩包 / 电子书封面的 Quick Look 缩略图扩展（Rust + Slint），arm64 / intel 双包，同一个二进制兼作 CLI（`arcthumb --get` / `--regenerate`）。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**光装不生效**，还要用 `pluginkit` 注册并启用，见「已知注意事项 → arcthumb」
 | `status-trio` | 1.3.1 | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用，通用二进制，需 macOS ≥ 15。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**本 tap 第一个设 `auto_updates` 的 cask**，理由见「已知注意事项 → status-trio」
 | `pelmet` | 0.8.1 | [ismatBabirli/pelmet](https://github.com/ismatBabirli/pelmet) | 菜单栏整理器，把被刘海吞掉的图标收进 Shelf；**签名与公证齐备、装完即用**，通用性上**只发 arm64**，需 macOS ≥ 13。带 Sparkle 原地自更新 → 设了 `auto_updates`。上游自己有 tap（`ismatBabirli/pelmet`），差异见「已知注意事项 → pelmet」
+| `mectrics` | 1.8.0 | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），通用二进制，需 macOS ≥ 15，**签名与公证都齐，装完即用**；带 Sparkle 但出厂关着自动检查，见「已知注意事项 → mectrics」
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -93,6 +94,7 @@ brew uninstall --cask --zap splayer-next
 │   ├── l/
 │   │   └── lume-app.rb
 │   ├── m/
+│   │   ├── mectrics.rb
 │   │   ├── micyou.rb
 │   │   └── my-window-pip.rb
 │   ├── n/
@@ -485,6 +487,10 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 公证这一项按前面那条规矩验：`codesign -dvvv` 有完整三级 `Authority`（Developer ID Application: Ismat Babirli (FBH9JL8MB9) → Certification Authority → Apple Root CA）加 `Notarization Ticket=stapled`，`spctl -a -vvv` 才打出 `source=Notarized Developer ID`。`minos 13.0` 与 `LSMinimumSystemVersion` 一致 → `:ventura`；sha256 三重对照（上游随包发的 `checksums.txt` + GitHub digest + 本地 `shasum`）。`zap` 里只有偏好 plist 是**启动 + 退出**实测落地的（里面同时存着应用设置、Sparkle 首启标记和 `lastAcknowledgedWhatsNewVersion`），其余三条照上游列表保留。
 
 > 一个容易看错的点：上游 README 说「不需要任何特殊权限」，那只针对隐藏 / 显示的主机制（撑宽分隔符把图标推出屏外，同 Hidden Bar / Dozer）。它**可选**的 one-click access 要辅助功能权限，本次首启就在偏好里写下了 `didPromptForAccessibility` / `awaitingOneClickGrant` —— 两句不矛盾，别据此判断它「说话不算数」。
+
+**`mectrics` 是本仓第一个「签名、公证、Sparkle 三样都齐」的 cask，也是 `auto_updates` 那条判据的对照组。** `spctl -a -vvv` 出现 `source=Notarized Developer ID`（`Developer ID Application: Faruk KAMÇICI (G88QSG6V2M)`），所以没有任何修复类 Caveats —— 注意这一行在**本机 Gatekeeper 评估关着时仍然有信息量**：ad-hoc 的 my-window-pip 只给 `origin=`、不给 `source=Notarized Developer ID`。`auto_updates` 的差别这次落到了一个可查的 key 上：mectrics 的 `Info.plist` 里**显式**写 `SUEnableAutomaticChecks = false`（上游 README 也这么说：只有你主动点 Settings → Check for Updates 才会查），所以不设；status-trio 同一个 key 根本不存在，Sparkle 在未指定时按开启处理，所以那份设了 `auto_updates true`。两边都不是「有没有 updater 依赖」的判断。
+
+另外三点实测：产物名不带版本号（v1.6.0 → v1.8.0 一路都叫 `Mectrics.dmg`，版本只在 tag 段，`github_latest` 照常工作，与 `clipp` 同形）；包里带一个**独立的只读 CLI** `Contents/Helpers/mectrics`（universal，`mectrics check` 只报规则不改设置），所以这里给了 `binary`，而上游自己的「Install CLI…」是在 `/usr/local/bin` 建软链 —— Intel 上那正好是 Homebrew 的 bin，两条路只能选一条，已写进 Caveats。`zap` 三条是启动 + 退出实看到的：`Application Support/Mectrics`（两个 JSON 日志）、App Group 容器 `group.com.mectrics.app`（`widget-snapshot.json`）、以及偏好域（Sparkle 的 `SUHasLaunchedBefore` 也在里面）；`Caches/com.mectrics.app`、`HTTPStorages`、saved state 都没出现，所以没列。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
