@@ -64,6 +64,7 @@ brew uninstall --cask --zap splayer-next
 | `rawviewer` | 0.1.1 | [stmtc233/RawViewer](https://github.com/stmtc233/RawViewer) | RAW 照片浏览器（Flutter + LibRaw），通用二进制，需 macOS ≥ 12。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；沙箱应用且 bundle id 还是 Flutter 占位 `com.example.rawviewer`，见「已知注意事项 → rawviewer」 |
 | `folia` | 0.7.7 | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron），arm64 / intel 双架构，需 macOS ≥ 12。⚠️ 装完必须重签名（与 `micyou` 同族）；**应用内那个「自动更新」别开**，见「已知注意事项 → folia」 |
 | `arcthumb` | 0.12.0 | [HibernalGlow/ArcThumbX](https://github.com/HibernalGlow/ArcThumbX) | 压缩包 / 电子书封面的 Quick Look 缩略图扩展（Rust + Slint），arm64 / intel 双包，同一个二进制兼作 CLI（`arcthumb --get` / `--regenerate`）。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**光装不生效**，还要用 `pluginkit` 注册并启用，见「已知注意事项 → arcthumb」
+| `status-trio` | 1.3.1 | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用，通用二进制，需 macOS ≥ 15。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**本 tap 第一个设 `auto_updates` 的 cask**，理由见「已知注意事项 → status-trio」
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -100,7 +101,8 @@ brew uninstall --cask --zap splayer-next
 │   │   ├── rawviewer.rb
 │   │   └── reinplayer.rb
 │   ├── s/
-│   │   └── splayer-next.rb
+│   │   ├── splayer-next.rb
+│   │   └── status-trio.rb
 │   └── z/
 │       └── ztools.rb           # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
 ├── Formula/                    # 目前为空，保留占位
@@ -468,6 +470,10 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 **`arcthumb` 是本仓第一个「装上 ≠ 生效」的 cask。** 它是 Quick Look 缩略图扩展（`com.apple.quicklook.thumbnail`），扩展必须被注册并启用才会出现在 Finder 里：上游自己的 `macos/README.md` 就写明 `lsregister` 单独用不够，要 `pluginkit -a <appex>` + `pluginkit -e use -i com.citrussoda.ArcThumb.thumbnail` + `qlmanage -r cache`。这两条**只进 Caveats**，不做成 `postflight` —— 理由就是上面「不要用 install steps 给上游打补丁」那节（沙箱套不上时会把刚解包的 app 删掉）。实测还抓到一个真实坑：**Quick Look 的注册是按路径记的**，这台机器上留有一条指向 `~/Applications/ArcThumb.app` 的 0.11.0 旧注册（`+` = 已启用），于是新装进 `/Applications` 的 0.12.0 看起来完全没作用；只有 `pluginkit -m -v -i <id>` 能看出是谁在供缩略图。查法与 `pluginkit -r` 的解法已写进 Caveats（本次没替机器清旧注册，那是开发者自己的工作副本）。
 
 数据面与校验：扩展是沙箱的，设置**只写一个文件** —— `~/Library/Containers/com.citrussoda.ArcThumb.thumbnail/Data/Library/Application Support/ArcThumb/settings`，上游明确说不用 `UserDefaults`（非沙箱的 helper 写不进沙箱的偏好域），实测 `~/Library/Preferences/com.citrussoda.ArcThumb.plist` 与 `~/Library/Application Support/ArcThumb` 都不存在，所以 `zap` 就容器那一条，和上游 uninstall 里的 `rm -rf` 完全一致。两个架构各做了**三重对照**：上游随包发的 `.sha256` + GitHub asset digest + 本地 `shasum` 全等，且分别挂包核对内层 Mach-O 是 arm64 / x86_64 thin、两片 `minos` 都是 11.0 并与 `LSMinimumSystemVersion` 一致 —— 11.0 恰好等于 Homebrew 自己的支持下限，于是 `depends_on macos: :big_sur` 会被判 redundant、`audit_min_os` 也提前返回，这里就写 `depends_on :macos`。签名是 ad-hoc 但自洽（app 与 appex 的 `--verify --deep --strict` 都退 0），属清 quarantine 那一类，不进 LaunchAgent 列表。`homepage` 暂用仓库地址：产品页 `https://citrussoda.com/en/arcthumb` 从本机 TLS 直接 `SSL_ERROR_SYSCALL`，`brew audit --online` 会因为不可达失败；等接入 Developer ID + 公证（仓库有 `MACOS_SIGN_IDENTITY` 这个开关，没设）之后可以换回去。
+
+**`status-trio` 是本 tap 第一个写 `auto_updates true` 的 cask，判据要跟前面几条对齐清楚。** 前面 netcatty / ztools / clipp 都**没**设，依据是「应用不会绕过 Homebrew 把自己换掉」：它们的 `electron-updater` 都是 `autoDownload = false` + `autoInstallOnAppQuit = false`，走到最后一步是把挂载好的安装窗丢给你、由人拖进 `/Applications`，等同手动安装。Status Trio 不一样，它带的是完整 Sparkle 2（`SUFeedURL` 指向仓库里的 `appcast.xml`、`SUPublicEDKey` 有值、`SUEnableInstallerLauncherService` 开着），用户在更新窗点一下 Install Update 就是**原地替换 bundle**：那时 tap 里的 `version` 还指着旧号，`brew outdated` 会一直报一个已经装不存在的升级。所以判据是同一句 —— **会不会自己换掉 bundle** —— 只是这里的答案是「会」，于是设标记、并在 Caveats 里写清副作用：设了 `auto_updates` 之后 brew 不再提醒升级，应用自己升过一轮后要跑 `brew upgrade --cask status-trio` 把元数据对齐，或者干脆在设置里关掉更新检查。
+
+其余都按老规矩验过：两片 `minos` 都是 15.0、与 `LSMinimumSystemVersion` 一致（`depends_on macos: :sequoia`，`audit_min_os` 不会挑刺）；sha256 三重对照（上游随包发的 `.dmg.sha256` + GitHub asset digest + 本地 `shasum`）；签名 ad-hoc 但自洽（`_CodeSignature` 在、strict verify 退 0）→ 清 quarantine 那一类，不进 LaunchAgent。`zap` 两条是**启动 + 退出之后**才成立的：运行期间 `~/Library/Preferences/` 一个文件都不出现（cfprefsd 攒着），退出才落 `com.lingsmbp.StatusTrio.plist`，里面同时有应用设置和 Sparkle 的 `SUHasLaunchedBefore` —— 也就是说 **Sparkle 的偏好写在应用自己的域里**，我先前按惯例加的 `org.sparkle-project.Sparkle.plist` 是个不存在的猜测，已删。上游文档另外给了两条边界值得记：它不读也不存 Wi-Fi 密码（macOS 没有用已存密码连接的公开 API），也不为「立即充满」写 SMC 或塞特权 helper。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
