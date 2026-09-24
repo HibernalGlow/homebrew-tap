@@ -1,6 +1,6 @@
 cask "lume-app" do
-  version "1.2.0"
-  sha256 "cc13f8327042dfaedcb07fb5cb6f0a3e58e6656b11854f1e831eb730c2ebe8c2"
+  version "1.3.0"
+  sha256 "51df00d539c024603f5ee15723df4fbdcfc8e9d05867012d9f76750062a1bcaf"
 
   url "https://github.com/hugomyb/Lume/releases/download/v#{version}/Lume_#{version}_universal.dmg"
   name "Lume"
