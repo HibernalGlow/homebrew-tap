@@ -67,6 +67,7 @@ brew uninstall --cask --zap splayer-next
 | `status-trio` | 1.3.1 | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用，通用二进制，需 macOS ≥ 15。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**本 tap 第一个设 `auto_updates` 的 cask**，理由见「已知注意事项 → status-trio」
 | `pelmet` | 0.8.1 | [ismatBabirli/pelmet](https://github.com/ismatBabirli/pelmet) | 菜单栏整理器，把被刘海吞掉的图标收进 Shelf；**签名与公证齐备、装完即用**，通用性上**只发 arm64**，需 macOS ≥ 13。带 Sparkle 原地自更新 → 设了 `auto_updates`。上游自己有 tap（`ismatBabirli/pelmet`），差异见「已知注意事项 → pelmet」
 | `mectrics` | 1.8.0 | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），通用二进制，需 macOS ≥ 15，**签名与公证都齐，装完即用**；带 Sparkle 但出厂关着自动检查，见「已知注意事项 → mectrics」
+| `clamless` | 0.1.10 | [TCXM/clamless](https://github.com/TCXM/clamless) | 不盖 lid 就断开 MacBook 内置屏（菜单栏原生 Swift，**仅 arm64**），走 SkyLight / IOMobileFramebuffer 私有 API。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**上游声明 macOS 13+，可产物实测 `minos 26.0`**，这份按二进制真值写 `depends_on macos: :tahoe`，代价是 `brew audit` 的 min_os 那条必然红，见「已知注意事项 → clamless」
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -85,6 +86,7 @@ brew uninstall --cask --zap splayer-next
 │   ├── a/
 │   │   └── arcthumb.rb
 │   ├── c/
+│   │   ├── clamless.rb
 │   │   └── clipp.rb
 │   ├── f/
 │   │   ├── folia.rb
@@ -245,6 +247,8 @@ brew livecheck --cask --tap=hibernalglow/tap
 brew install --cask --dry-run hibernalglow/tap/splayer-next   # 预演
 brew install --cask hibernalglow/tap/splayer-next             # 真装
 ```
+
+> 三条实测过的坑。一是 `brew audit <文件路径>` 被直接禁掉（`Error: Calling brew audit [path ...] is disabled! Use brew audit [name ...] instead.`），只能给 cask 名 —— 所以「裸路径就能跑 audit」是不成立的，文件得先落到 tap 克隆里。二是 `brew audit --tap=hibernalglow/tap <name>` 带着 `--tap` 时会**把整个 tap 都审一遍**（实测为了验一个 cask 去下了 `folia` 的 172 MB 包），只想验一个就别加 `--tap`。三是 `brew audit … | tail -6` 之后的 `$?` 是 `tail` 的退出码，得重定向到日志文件或靠 `PIPESTATUS` 才拿得到 brew 的真实结果 —— 「拿管道后的退出码证明一条断言绿了」这种错法实测会骗人（本机 `api.github.com` 还会偶发 `curl (35) SSL_ERROR_SYSCALL`，报成 `exception while auditing`，加 `https_proxy` 重跑就好）。
 
 **大产物反复下不完时，可以直接喂 Homebrew 的下载缓存**（`folia` 的 172 MB 包今天被 GitHub 掐断三次：`curl` 报 exit 18，`brew install` 两次 `Download failed`）。文件名规则是 `$(brew --cache)/downloads/<sha256(URL)>--<产物名>` —— 注意是 **`downloads/` 子目录**，放 cache 根目录 Homebrew 不认（会当没缓存、继续重下）：
 
@@ -491,6 +495,10 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 **`mectrics` 是本仓第一个「签名、公证、Sparkle 三样都齐」的 cask，也是 `auto_updates` 那条判据的对照组。** `spctl -a -vvv` 出现 `source=Notarized Developer ID`（`Developer ID Application: Faruk KAMÇICI (G88QSG6V2M)`），所以没有任何修复类 Caveats —— 注意这一行在**本机 Gatekeeper 评估关着时仍然有信息量**：ad-hoc 的 my-window-pip 只给 `origin=`、不给 `source=Notarized Developer ID`。`auto_updates` 的差别这次落到了一个可查的 key 上：mectrics 的 `Info.plist` 里**显式**写 `SUEnableAutomaticChecks = false`（上游 README 也这么说：只有你主动点 Settings → Check for Updates 才会查），所以不设；status-trio 同一个 key 根本不存在，Sparkle 在未指定时按开启处理，所以那份设了 `auto_updates true`。两边都不是「有没有 updater 依赖」的判断。
 
 另外三点实测：产物名不带版本号（v1.6.0 → v1.8.0 一路都叫 `Mectrics.dmg`，版本只在 tag 段，`github_latest` 照常工作，与 `clipp` 同形）；包里带一个**独立的只读 CLI** `Contents/Helpers/mectrics`（universal，`mectrics check` 只报规则不改设置），所以这里给了 `binary`，而上游自己的「Install CLI…」是在 `/usr/local/bin` 建软链 —— Intel 上那正好是 Homebrew 的 bin，两条路只能选一条，已写进 Caveats。`zap` 三条是启动 + 退出实看到的：`Application Support/Mectrics`（两个 JSON 日志）、App Group 容器 `group.com.mectrics.app`（`widget-snapshot.json`）、以及偏好域（Sparkle 的 `SUHasLaunchedBefore` 也在里面）；`Caches/com.mectrics.app`、`HTTPStorages`、saved state 都没出现，所以没列。
+
+**`clamless` 是本仓第一个「真值与 CI 只能选一个」的 cask。** `Info.plist` 的 `LSMinimumSystemVersion` 和上游 README 都写 13.0，但 `vtool -show-build` 对 `ClamlessMenu` 与包内 helper `clamless-display` 都给 `minos 26.0`（SDK 26.5）—— 根因在 `scripts/build.sh`：`clang` / `swiftc` 都没带 `-target`，部署目标跟着 macos-26 的发布 runner 走。dyld 认的是 load command，所以 macOS 13–15 的用户装得上、跑不起。本仓「以二进制为准」那条规矩在这里指向 `:tahoe`，代价是 `brew audit --strict --online` 一定红：`cask/audit.rb` 只读 plist（有 `LSMinimumSystemVersion` 就不去看 Mach-O），拿到 `:ventura` 后与 cask 声明不等就 `add_error`，而这条 `add_error` 前面没有 `tap.audit_exception` 的入口 —— 能让它绿的写法只有照抄那个假值。**两个方向都实测过**：`depends_on macos: :tahoe` 时 `brew audit --strict --online clamless` 退 1、只报这一条（`Artifact defined :ventura as the minimum macOS version but the cask declared a depends_on stanza with a minimum macOS version of :tahoe`）；换成 `:ventura` 后退 0、其余 strict + online 检查一项不少全过 —— 也就是这个 cask 离 CI 绿只差那一个假值。SleepBar（2026-09-21）是同一种形状的冲突，当时选择不发；这次先落真值，min_os 这一条按已知失败对待，上游在 `build.sh` 里补上 `-target` 重新发版之后 `:ventura` 就同时是真值且绿。
+
+其余照旧：签名 ad-hoc 但自洽（`_CodeSignature` 在、`--verify --deep --strict` 退 0、无 `Authority`、`TeamIdentifier=not set`）→ 清 quarantine 那一类，不进 LaunchAgent 列表；产物只有 arm64 一片。`auto_updates` 没设的依据是 updater 实现（`src/menubar/main.swift` 里 `URLSession` GET `api.github.com/repos/TCXM/clamless/releases/latest`，回调只弹「去下载」按钮；bundle 内没有 Sparkle、也没有安装动作）→ 提示模型，升级渠道留给 brew。sha256 两个来源（GitHub asset 的 `digest` + 本地 `shasum` 全等）。上游其实算了校验文件 —— `release.yml:63` 用 `shasum -a 256 -c` 验 `dist/Clamless-$VERSION.dmg.sha256`，可 `release.yml:119` 的 `gh release upload` 只传 dmg（还带 `--clobber`），所以校验文件没进 release，等于少一个来源；`--clobber` 也意味着同 tag 原地重传是可能的，autobump 撞上时别只比版本号。`brew livecheck --cask clamless` 实测 `clamless: 0.1.10 ==> 0.1.10`，`strategy :github_latest` 走通。`zap` 两条**未经启动验证**，是读源码定的：`UserDefaults.standard` → `Preferences/local.clamless.menu.plist`，`DebugLog` 在 `main.swift:149` 无条件建 `Logs/Clamless`；登录项走 `SMAppService.mainApp`（`main.swift:784`）由系统托管，没有 LaunchAgent plist 可删。它是 LSUIElement 菜单栏应用、而且要接着外接屏才有意义，本次没有在本机启动，启停实测留给使用者（跑一次再看 `~/Library/Caches/local.clamless.menu` 有没有冒出来）。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
