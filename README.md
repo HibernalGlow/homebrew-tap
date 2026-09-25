@@ -69,6 +69,7 @@ brew uninstall --cask --zap splayer-next
 | `mectrics` | 1.8.0 | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），通用二进制，需 macOS ≥ 15，**签名与公证都齐，装完即用**；带 Sparkle 但出厂关着自动检查，见「已知注意事项 → mectrics」
 | `opennow` | 1.0.1 | [OpenCloudGaming/OpenNOW](https://github.com/OpenCloudGaming/OpenNOW) | 开源 GeForce NOW 客户端（Qt 6 + 自研 Rust 串流核心），**仅 arm64**（上游明说不带 Intel），需 macOS ≥ 13。**Developer ID + 公证 + hardened runtime 三样齐、装完即用**；带自己的原地更新器 → 设了 `auto_updates`。⚠️ 别拿上游 README 那句「macOS 包没公证」当回事，它讲的是 nightly，见「已知注意事项 → opennow」
 | `clamless` | 0.1.10 | [TCXM/clamless](https://github.com/TCXM/clamless) | 不盖 lid 就断开 MacBook 内置屏（菜单栏原生 Swift，**仅 arm64**），走 SkyLight / IOMobileFramebuffer 私有 API。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**上游声明 macOS 13+，可产物实测 `minos 26.0`**，这份按二进制真值写 `depends_on macos: :tahoe`，代价是 `brew audit` 的 min_os 那条必然红，见「已知注意事项 → clamless」
+| `ferail` | 0.7.8 | [jonx/Ferail](https://github.com/jonx/Ferail) | Rust + GPUI 写的原生文件管理器（面向重度用户），**仅 arm64**，下限 macOS 11。**Developer ID + 公证 + hardened runtime 齐、装完即用**；更新器只把 DMG 下到 `~/Downloads`、从不换 bundle → **不设** `auto_updates`。见「已知注意事项 → ferail」
 | `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
 | `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
 | `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
@@ -90,6 +91,7 @@ brew uninstall --cask --zap splayer-next
 │   │   ├── clamless.rb
 │   │   └── clipp.rb
 │   ├── f/
+│   │   ├── ferail.rb
 │   │   ├── folia.rb
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
 │   ├── j/
@@ -508,6 +510,12 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 版本下限这次**没有** clamless 那种冲突，而且成因值得记：这个 bundle 的 `Info.plist` **压根没有** `LSMinimumSystemVersion` 键，于是审计的 `cask_bundle_min_os` 走 Mach-O 回退分支，`vtool -show-build` 给 `minos 13.0`（SDK 15.5），与上游「macOS 13+」一致 → `depends_on macos: :ventura` 同时是真值和审计推出来的值，`brew audit --strict --online opennow` 实测退 0。这次的绿**做过证伪**：改成 `:tahoe` 后同一命令退 1、仍报 `Artifact defined :ventura ... but the cask declared ... :tahoe` —— 那个 `:ventura` 只可能来自 Mach-O，所以「plist 缺键就回退读二进制」这条不是推的，是拿一次红验出来的。产物只有 arm64 一片（上游原话 "Intel Macs are not included"）；sha256 三重对照（上游随包发的 `SHA256SUMS` + GitHub asset `digest` + 本地 `shasum` 全等，每个 asset 还各带一个 `.manifest.json`，那是它更新器的 ed25519 签名清单，不是校验文件）。`homepage` 用 `https://opennow.zortos.me/`：仓库的 homepage 字段是空的，`opennow.app` 只是 Qt 的 `organizationDomain`（解析不到），而 README 里链的这个站标题就是「OpenNOW — Open-source GeForce NOW client」。
 
 `zap` 只有一条，而且是**故意只有一条**。设置与账号数据全在 Rust 核心那个目录（`opennow-core/src/settings.rs:828-830` → `~/Library/Application Support/OpenNOW`，里面是 `settings.json`）；Qt 侧 `QSettings` 只出现在 `AppController.cpp:399-413` 的 `#ifdef Q_OS_WIN` 分支里，也就是 **macOS 上不写偏好 plist**，别按惯例补 `~/Library/Preferences/io.github.opencloudgaming.OpenNOW.plist` 那条。反过来 `~/Pictures/OpenNOW/{Screenshots,Recordings}` 是它落截图与录屏的地方（`opennow-core/src/media.rs:18-20`），属用户内容，按 `jhentai` / `lume-app` 那条红线**不进 `zap`**，只在 Caveats 里告诉人自己去删。以上路径全是读源码定的，**没做启动验证**（它要 NVIDIA 账号登录、还要有可串的游戏才有意义），所以启停实测与 `Caches` 有没有东西仍欠一次。
+
+**`ferail` 的 `depends_on :macos` 不是偷懒，是被两条规则夹出来的。** 上限那边：`LSMinimumSystemVersion` 与唯一那个 Mach-O（`ferail-gpui`）的 `minos` 都是 **11.0**（`plutil` 与 `vtool` 各读一次，两处独立一致），而 11 正好等于 Homebrew 自己的 `HOMEBREW_MACOS_OLDEST_ALLOWED`；于是写 `:big_sur` 会被 `Homebrew/OSDependsOn` 判「redundant minimum macOS version」让 `brew style` 变红 —— 这条**做了证伪**：把那一行临时换成 `depends_on macos: :big_sur` 后 `brew style` 退 1 并原样报那句，改回 `depends_on :macos` 才干净。与 `arcthumb` 同一个位置（那里是 `minos 11.0` 恰好等于下限）。
+
+顺带记一条**「绿了不代表那条断言跑过」**的实例：`audit_min_os` 开头就是 `return if app_min_os <= HOMEBREW_MACOS_OLDEST_ALLOWED`，11.0 命中提前返回，所以 `brew audit --strict --online ferail` 退 0 里**压根没有**版本下限这一项的功劳 —— ferail 的下限完全靠上面那两处独立读数撑着，别拿 audit 的绿当它验过。同一次运行真正验到的是 `version` / `url` / `sha256` / `homepage` / desc 与 token 格式那几类（以及 `--online` 的产物下载与解包）。
+
+其余：签名按上游自己那张表说的「Developer ID signed **and notarized**」成立 —— `codesign -dvvv` 三级 `Authority`（`Developer ID Application: John Knopper (C43N3NG7Z5)`）+ `Notarization Ticket=stapled` + `flags=0x10000(runtime)`，`xcrun stapler validate` 退 0 → 没有任何修复类 Caveats，也不进 LaunchAgent 列表；entitlements 只有 `com.apple.security.cs.disable-library-validation`，**不是沙箱应用**，所以 `~/Library/...` 直接写、不套 `Containers` 前缀，代价是首次访问 Desktop / Documents / Downloads 会弹 TCC 授权（已写进 Caveats）。产物只有 arm64 一片。**不设 `auto_updates`** 的依据读的是实现文档：macOS 那条路是「把 asset 下载到 `~/Downloads`（`.part` 再改名）→ Open 只是挂载 DMG → 装仍由人来」，且自动检查是 opt-in、新装默认关（`docs/features/UPDATES.md`、`PRIVACY.md:79`），也就是 netcatty / ztools / clipp 那一档提示模型。`zap` 只有一条，依据是 `PRIVACY.md:121` 声明 macOS 只有 `~/Library/Application Support/Ferail` 这一个主目录，且上游明说删它不动你浏览过的文件；顺带一条隐私向提醒：那里面存着 Ant Trail 访问记录、Favorites 与重复哈希缓存，`--zap` 会连带抹掉「访问过哪些路径」这份记录。sha256 只有**两个**来源（GitHub asset `digest` + 本地 `shasum` 全等）—— 这个 release 的 6 个 asset 里没有随包校验文件，只有各平台的包和一个 symbols zip。路径同样是读源码/文档定的，**没做启动验证**。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
 
