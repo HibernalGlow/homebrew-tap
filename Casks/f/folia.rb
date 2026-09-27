@@ -1,9 +1,9 @@
 cask "folia" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.7.8"
-  sha256 arm:   "866d12407991d6367285fe3feba6a3f8e3a67e859b5357aaf4f127b4da2786cb",
-         intel: "c8881bc6fde97763eb33b3bce1da12aec1608b560ec24e410398ce8795825d22"
+  version "0.7.9"
+  sha256 arm:   "8df0ece60fd684884e760e722214f7b50ed32e72fbcac48d5ba7944702285e20",
+         intel: "daa9370c58b86f7eee50b93917c35b50626781a6c3785a7a1c362050d7b75bdc"
 
   url "https://github.com/chthollyphile/folia-major/releases/download/v#{version}/Folia-#{version}-#{arch}.dmg"
   name "Folia"
