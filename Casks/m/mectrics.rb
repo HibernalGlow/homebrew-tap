@@ -1,6 +1,6 @@
 cask "mectrics" do
-  version "1.8.0"
-  sha256 "40bc630b9e8cf7b53221310f8bd4ec7d3c98e597e57bd20f911cb9483e6a79f8"
+  version "1.9.0"
+  sha256 "1445e17256402096621af86146fbee3ecc963cb7b82b7da602c2b858af7bb801"
 
   url "https://github.com/farukkamcici/mectrics/releases/download/v#{version}/Mectrics.dmg"
   name "Mectrics"
