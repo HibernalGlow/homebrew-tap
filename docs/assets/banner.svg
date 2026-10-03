@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="264" viewBox="0 0 1200 264" role="img" aria-label="hibernalglow/tap — personal Homebrew tap for niche macOS GUI apps">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="0.55" stop-color="#111a2b"/>
+      <stop offset="1" stop-color="#0d1526"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <clipPath id="round">
+      <rect x="0" y="0" width="1200" height="264" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#round)">
+    <rect width="1200" height="264" fill="url(#bg)"/>
+
+    <!-- geometric cask shelf: no upstream artwork is reproduced here -->
+    <g transform="translate(884 44)" opacity="0.92">
+      <g fill="none" stroke="#1e2b45" stroke-width="1.5">
+        <rect x="0" y="0" width="58" height="58" rx="12"/>
+        <rect x="70" y="0" width="58" height="58" rx="12"/>
+        <rect x="140" y="0" width="58" height="58" rx="12"/>
+        <rect x="0" y="70" width="58" height="58" rx="12"/>
+        <rect x="70" y="70" width="58" height="58" rx="12"/>
+        <rect x="140" y="70" width="58" height="58" rx="12"/>
+        <rect x="0" y="140" width="58" height="58" rx="12"/>
+        <rect x="70" y="140" width="58" height="58" rx="12"/>
+        <rect x="140" y="140" width="58" height="58" rx="12"/>
+      </g>
+      <rect x="0" y="0" width="58" height="58" rx="12" fill="#38bdf8" opacity="0.20"/>
+      <rect x="70" y="70" width="58" height="58" rx="12" fill="#a78bfa" opacity="0.24"/>
+      <rect x="140" y="140" width="58" height="58" rx="12" fill="#f59e0b" opacity="0.20"/>
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="600">
+        <text x="29" y="34" fill="#7dd3fc" text-anchor="middle">app</text>
+        <text x="99" y="104" fill="#c4b5fd" text-anchor="middle">cli</text>
+        <text x="169" y="174" fill="#fcd34d" text-anchor="middle">zap</text>
+      </g>
+    </g>
+
+    <text x="56" y="86" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="50" font-weight="700" fill="#f8fafc" letter-spacing="-1">hibernalglow<tspan fill="#64748b">/</tspan>tap</text>
+    <rect x="56" y="102" width="470" height="3" rx="1.5" fill="url(#rule)"/>
+    <text x="56" y="146" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif" font-size="22" fill="#cbd5e1">个人 Homebrew tap &#183; 官方仓库没有收录的小众 macOS GUI 应用</text>
+    <text x="56" y="180" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif" font-size="18" fill="#7c8ca5">A personal Homebrew tap &#8212; niche macOS GUI apps that <tspan font-style="italic">homebrew/cask</tspan> does not carry</text>
+
+    <g transform="translate(56 202)">
+      <rect x="0" y="0" width="376" height="38" rx="10" fill="#020617" stroke="#1e2b45" stroke-width="1.5"/>
+      <text x="18" y="25" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" fill="#94a3b8">$ brew tap <tspan fill="#e2e8f0" font-weight="600">hibernalglow/tap</tspan></text>
+    </g>
+    <text x="452" y="230" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" fill="#475569">macOS &#183; arm64 + Intel &#183; audited per cask</text>
+  </g>
+
+  <rect x="0.75" y="0.75" width="1198.5" height="262.5" rx="18" fill="none" stroke="#1e2b45" stroke-width="1.5"/>
+</svg>

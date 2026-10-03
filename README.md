@@ -1,12 +1,40 @@
-# hibernalglow/tap
+<div align="center">
+
+<img src="docs/assets/banner.svg" alt="hibernalglow/tap —— 个人 Homebrew tap，收纳官方仓库未收录的小众 macOS GUI 应用" width="100%" />
+
+**简体中文** · [English](README.en.md)
 
 [![brew test-bot](https://github.com/HibernalGlow/homebrew-tap/actions/workflows/tests.yml/badge.svg)](https://github.com/HibernalGlow/homebrew-tap/actions/workflows/tests.yml)
+![macOS](https://img.shields.io/badge/platform-macOS-000000?style=flat-square&logo=apple&logoColor=white)
+![Homebrew tap](https://img.shields.io/badge/Homebrew-tap-F9AA15?style=flat-square&logo=homebrew&logoColor=black)
+![autobump](https://img.shields.io/badge/autobump-daily_11%3A30_UTC-38bdf8?style=flat-square)
 
-仓库地址：<https://github.com/HibernalGlow/homebrew-tap>
+</div>
 
 个人 Homebrew tap：收纳 Homebrew 官方仓库（`homebrew/cask`）没有收录的小众 macOS GUI 应用。
 
 相当于原来 Windows 上自建 Scoop bucket 的 macOS 对应物 —— 上游有 GitHub Release、产物命名稳定，但没人打包的软件，都在这里。
+
+仓库地址：<https://github.com/HibernalGlow/homebrew-tap>
+
+---
+
+## 目录
+
+- [安装 tap](#安装-tap)
+- [安装软件](#安装软件)
+- [当前收录](#当前收录)
+- [签名与公证的三类处置](#签名与公证的三类处置)
+- [目录结构](#目录结构)
+- [添加新的 cask](#添加新的-cask)
+- [更新版本](#更新版本)
+- [本地测试](#本地测试)
+- [CI 都检查什么](#ci-都检查什么)
+- [后续扩展](#后续扩展)
+- [已知上游问题](#已知上游问题)
+- [逐条注意事项](#逐条注意事项)
+
+---
 
 ## 安装 tap
 
@@ -14,6 +42,7 @@
 brew tap hibernalglow/tap
 ```
 
+> [!NOTE]
 > GitHub 上的 owner 是 `HibernalGlow`（含大写），但 Homebrew 会把 tap 名统一转小写，克隆路径也是小写的（`/opt/homebrew/Library/Taps/hibernalglow/homebrew-tap`）。写 `HibernalGlow/tap` 同样能装，只是内部规范形式是 `hibernalglow/tap`。
 
 Homebrew 7 起默认**不加载**第三方 tap 里的 cask/公式，首次 `install` 时会弹出信任提示。想提前授权：
@@ -49,37 +78,66 @@ brew uninstall --cask --zap splayer-next
 
 ## 当前收录
 
+「处置」一列指装完之后还要不要动手，判据见[签名与公证的三类处置](#签名与公证的三类处置)。
+
+### 应用类 cask
+
+| Cask | 版本 | 处置 | 架构 · macOS | 上游 | 说明 |
+| --- | --- | :-: | --- | --- | --- |
+| [`arcthumb`](#arcthumb) | 0.12.0 | **B** | arm64 / intel 双包 · `:macos` | [HibernalGlow/ArcThumbX](https://github.com/HibernalGlow/ArcThumbX) | 压缩包 / 电子书封面的 Quick Look 缩略图扩展（Rust + Slint），同一个二进制兼作 CLI（`arcthumb --get` / `--regenerate`）。**光装不生效**，还要用 `pluginkit` 注册并启用 |
+| [`clamless`](#clamless) | 0.1.10 | **B** | 仅 arm64 · `:tahoe` | [TCXM/clamless](https://github.com/TCXM/clamless) | 不盖 lid 就断开 MacBook 内置屏（菜单栏原生 Swift），走 SkyLight / IOMobileFramebuffer 私有 API。上游声明 13+，产物实测 `minos 26.0` —— 这份按真值写，代价是 `brew audit` 的 min_os 那条必然红 |
+| [`clipp`](#clipp) | 1.5.0.160 | **C** | 仅 arm64 · `:sonoma` | [martona/clipp](https://github.com/martona/clipp) | 局域网 P2P 剪贴板同步（文本 / 图片），同一个二进制兼作 `clipp copy` / `paste` CLI。上游自己有 tap（`martona/tap`），本 tap 这份补了 `quit` 和寄存器快照的 `zap` 路径 |
+| [`ferail`](#ferail) | 0.7.8 | **C** | 仅 arm64 · `:macos` | [jonx/Ferail](https://github.com/jonx/Ferail) | Rust + GPUI 写的原生文件管理器（面向重度用户）。Developer ID + 公证 + hardened runtime 齐；更新器只把 DMG 下到 `~/Downloads`、从不换 bundle → **不设** `auto_updates` |
+| [`folia`](#folia) | 0.7.8 | **A** | arm64 / intel 双包 · `:monterey` | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron）。**应用内那个「自动更新」别开** |
+| [`hibernal`](#hibernal) | 2.0.0 | **B** | universal · `:ventura` | [HibernalGlow/hibernal](https://github.com/HibernalGlow/hibernal) | 从菜单栏或全局快捷键一键触发深度休眠。首次休眠要一次管理员密码装 root helper；`--zap` 会连那个 helper 一起清 |
+| [`jhentai`](#jhentai) | 8.0.16+334 | **B** | universal · `:macos` | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），下载与本地书库齐全。**上游标明 macOS 构建「无维护」**；沙箱应用，`zap` 只清可再生部分 |
+| [`jhentaix`](#jhentaix) | 8.0.16+337 | **B** | 单包 · `:monterey` | [HibernalGlow/JHenTai](https://github.com/HibernalGlow/JHenTai) | JHenTai 的本仓 fork，带磁力链接工具。8.0.16+337 起换了自己的 bundle id，与 `jhentai` 并存、不共容器 |
+| [`lume-app`](#lume-app) | 1.2.0 | **A** | universal · `:macos` | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机）。用户的 VM 镜像刻意**不进** `zap` |
+| [`maaend`](#maaend) | 2.30.1 | **A** | arm64 / intel 双包 · `:ventura` | [MaaEnd/MaaEnd](https://github.com/MaaEnd/MaaEnd) | 「明日方舟：终末地」视觉 AI 自动化助手（Tauri + MaaFramework）。**上游产物连自己的资源封套都对不上**（模板图文件名 NFC / NFD 不一致）；数据落在框架共享的 `Application Support/MXU/`，`zap` 只能按文件名挑 |
+| [`mectrics`](#mectrics) | 1.8.0 | **C** | universal · `:sequoia` | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），带一个独立的只读 CLI。本仓第一个「签名、公证、Sparkle 三样都齐」的 cask |
+| [`menu-bar-dock`](#menu-bar-dock) | 4.7.9 | **—** | 单包 · `:macos` | [EthanSK/Menu-Bar-Dock](https://github.com/EthanSK/Menu-Bar-Dock) | 菜单栏版 Dock。带完整 Sparkle 2 且自动检查开着 → 设了 `auto_updates`。签名尚未逐项复核 |
+| [`micyou`](#micyou) | 2.0.3 | **A** | 仅 arm64 · `:macos` | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），另带 `micyou-cli` / `micyou-tui`；还需要一个虚拟音频设备 |
+| [`my-window-pip`](#my-window-pip) | 0.1.7 | **B** | universal · `:sonoma` | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，CPU 近零），必需「屏幕录制」权限。自签证书、未经 Apple 公证 |
+| [`netcatty`](#netcatty) | 1.1.83 | **C** | arm64 / intel 双包 · `:monterey` | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh。签名与公证正常，装完即用 |
+| [`nigate`](#nigate) | 1.4.5 | **A** | arm64 / intel 双包 · `:macos` | [hoochanlon/Free-NTFS-for-Mac](https://github.com/hoochanlon/Free-NTFS-for-Mac) | NTFS 读写挂载管理器（Electron）。它的「一键装依赖」会用管理员权限从 CDN 拉脚本装 / **删 macFUSE**，动手前先读注意事项 |
+| [`opennow`](#opennow) | 1.0.1 | **C** | 仅 arm64 · `:ventura` | [OpenCloudGaming/OpenNOW](https://github.com/OpenCloudGaming/OpenNOW) | 开源 GeForce NOW 客户端（Qt 6 + 自研 Rust 串流核心）。Developer ID + 公证 + hardened runtime 三样齐；带自己的原地更新器 → 设了 `auto_updates` |
+| [`pelmet`](#pelmet) | 0.8.1 | **C** | 仅 arm64 · `:ventura` | [ismatBabirli/pelmet](https://github.com/ismatBabirli/pelmet) | 菜单栏整理器，把被刘海吞掉的图标收进 Shelf。上游自己有 tap（`ismatBabirli/pelmet`），收我们这份的意义是那几处实测差异 |
+| [`rawviewer`](#rawviewer) | 0.1.1 | **B** | universal · `:monterey` | [stmtc233/RawViewer](https://github.com/stmtc233/RawViewer) | RAW 照片浏览器（Flutter + LibRaw）。沙箱应用且 bundle id 还是 Flutter 占位 `com.example.rawviewer` |
+| [`reinplayer`](#reinplayer) | 1.1.0 | **B** | universal · `:macos` | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit）。上游 ad-hoc 签名，bundle id 仍是占位 `com.example.reinPlayer` |
+| [`splayer-next`](#splayer-next) | 1.1.0 | **A** | arm64 / intel 双包 · `:monterey` | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust） |
+| [`status-trio`](#status-trio) | 1.3.1 | **B** | universal · `:sequoia` | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用。本 tap 第一个设 `auto_updates` 的 cask |
+| [`ztools`](#ztools) | 3.2.0 | **C** | arm64 / intel 双包 · `:monterey` | [ZToolsCenter/ZTools](https://github.com/ZToolsCenter/ZTools) | 应用启动器 + 插件平台（类 uTools，Electron 41）。全局快捷键要单独授「辅助功能」权限；数据目录被重定向到 `~/.ztools` |
+
+### 字体类 cask
+
 | Cask | 版本 | 上游 | 说明 |
 | --- | --- | --- | --- |
-| `micyou` | 2.0.3 | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），**仅 arm64**，需 macOS ≥ 11，另带 `micyou-cli` / `micyou-tui`。⚠️ 装完需重签名，见「已知上游问题」 |
-| `netcatty` | 1.1.83 | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh；arm64 / intel 双架构。签名与公证正常，装完即用 |
-| `splayer-next` | 1.1.0 | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust），arm64 / intel 双架构。⚠️ 装完需重签名，见「已知上游问题」 |
-| `lume-app` | 1.2.0 | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机），universal 二进制。⚠️ 装完需重签名，见「已知上游问题」 |
-| `reinplayer` | 1.1.0 | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit），universal 二进制。上游 ad-hoc 签名（无 Developer ID，bundle id 仍是占位 `com.example.reinPlayer`）；Homebrew 会给产物打 quarantine、首次启动会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine 即可，见「已知注意事项 → reinplayer」 |
-| `ztools` | 3.2.0 | [ZToolsCenter/ZTools](https://github.com/ZToolsCenter/ZTools) | 应用启动器 + 插件平台（类 uTools，Electron 41），arm64 / intel 双架构，需 macOS ≥ 12。签名与公证正常，装完即用；全局快捷键要单独授「辅助功能」权限 |
-| `clipp` | 1.5.0.160 | [martona/clipp](https://github.com/martona/clipp) | 局域网 P2P 剪贴板同步（文本 / 图片），同一个二进制兼作 `clipp copy` / `paste` CLI。**仅 arm64**，需 macOS ≥ 14。签名与公证正常，装完即用。上游自己有 tap（`martona/tap`），本 tap 这份补了 `quit` 和寄存器快照的 `zap` 路径，理由见「已知注意事项 → clipp」 |
-| `my-window-pip` | 0.1.7 | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，通用二进制，CPU 近零），需 macOS ≥ 14，必需「屏幕录制」权限。⚠️ 自签证书、未经 Apple 公证，首启会被 Gatekeeper 拦「无法验证的开发者」，按 Caveats 清 quarantine，见「已知注意事项 → my-window-pip」 |
-| `jhentai` | 8.0.16+334 | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），通用二进制，下载与本地书库齐全。**上游标明 macOS 构建「无维护」**。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；且它是沙箱应用，数据全在容器里，`zap` 只清可再生的部分，见「已知注意事项 → jhentai」 |
-| `nigate` | 1.4.5 | [hoochanlon/Free-NTFS-for-Mac](https://github.com/hoochanlon/Free-NTFS-for-Mac) | NTFS 读写挂载管理器（Electron），arm64 / intel 双架构。⚠️ 装完必须重签名（与 `splayer-next` 同族）；它的「一键装依赖」会用管理员权限从 CDN 拉脚本装 / **删 macFUSE**，本机已有 macFUSE / ntfs-3g 方案的先看「已知注意事项 → nigate」再按那两个按钮 |
-| `rawviewer` | 0.1.1 | [stmtc233/RawViewer](https://github.com/stmtc233/RawViewer) | RAW 照片浏览器（Flutter + LibRaw），通用二进制，需 macOS ≥ 12。⚠️ ad-hoc 签名、未公证，首启被 Gatekeeper 拦；沙箱应用且 bundle id 还是 Flutter 占位 `com.example.rawviewer`，见「已知注意事项 → rawviewer」 |
-| `folia` | 0.7.8 | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron），arm64 / intel 双架构，需 macOS ≥ 12。⚠️ 装完必须重签名（与 `micyou` 同族）；**应用内那个「自动更新」别开**，见「已知注意事项 → folia」 |
-| `arcthumb` | 0.12.0 | [HibernalGlow/ArcThumbX](https://github.com/HibernalGlow/ArcThumbX) | 压缩包 / 电子书封面的 Quick Look 缩略图扩展（Rust + Slint），arm64 / intel 双包，同一个二进制兼作 CLI（`arcthumb --get` / `--regenerate`）。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**光装不生效**，还要用 `pluginkit` 注册并启用，见「已知注意事项 → arcthumb」
-| `status-trio` | 1.3.1 | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用，通用二进制，需 macOS ≥ 15。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**本 tap 第一个设 `auto_updates` 的 cask**，理由见「已知注意事项 → status-trio」
-| `pelmet` | 0.8.1 | [ismatBabirli/pelmet](https://github.com/ismatBabirli/pelmet) | 菜单栏整理器，把被刘海吞掉的图标收进 Shelf；**签名与公证齐备、装完即用**，通用性上**只发 arm64**，需 macOS ≥ 13。带 Sparkle 原地自更新 → 设了 `auto_updates`。上游自己有 tap（`ismatBabirli/pelmet`），差异见「已知注意事项 → pelmet」
-| `mectrics` | 1.8.0 | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），通用二进制，需 macOS ≥ 15，**签名与公证都齐，装完即用**；带 Sparkle 但出厂关着自动检查，见「已知注意事项 → mectrics」
-| `opennow` | 1.0.1 | [OpenCloudGaming/OpenNOW](https://github.com/OpenCloudGaming/OpenNOW) | 开源 GeForce NOW 客户端（Qt 6 + 自研 Rust 串流核心），**仅 arm64**（上游明说不带 Intel），需 macOS ≥ 13。**Developer ID + 公证 + hardened runtime 三样齐、装完即用**；带自己的原地更新器 → 设了 `auto_updates`。⚠️ 别拿上游 README 那句「macOS 包没公证」当回事，它讲的是 nightly，见「已知注意事项 → opennow」
-| `clamless` | 0.1.10 | [TCXM/clamless](https://github.com/TCXM/clamless) | 不盖 lid 就断开 MacBook 内置屏（菜单栏原生 Swift，**仅 arm64**），走 SkyLight / IOMobileFramebuffer 私有 API。⚠️ ad-hoc 签名、未公证，首启要清 quarantine；**上游声明 macOS 13+，可产物实测 `minos 26.0`**，这份按二进制真值写 `depends_on macos: :tahoe`，代价是 `brew audit` 的 min_os 那条必然红，见「已知注意事项 → clamless」
-| `ferail` | 0.7.8 | [jonx/Ferail](https://github.com/jonx/Ferail) | Rust + GPUI 写的原生文件管理器（面向重度用户），**仅 arm64**，下限 macOS 11。**Developer ID + 公证 + hardened runtime 齐、装完即用**；更新器只把 DMG 下到 `~/Downloads`、从不换 bundle → **不设** `auto_updates`。见「已知注意事项 → ferail」
-| `maaend` | 2.30.1 | [MaaEnd/MaaEnd](https://github.com/MaaEnd/MaaEnd) | 「明日方舟：终末地」视觉 AI 自动化助手（Tauri + MaaFramework），arm64 / intel 双包。**下限按真正会被 dyld 拒的那批 `minos 13.3` 写 `:ventura`**，plist 的 10.13 是摆设。⚠️ ad-hoc 签名、未公证，而且**上游产物连自己的资源封套都对不上**（一个模板图的文件名 NFC / NFD 不一致）→ `codesign --verify --deep --strict` 必红，属「装完要重签」那一族，只是成因不同。带 MirrorChyan 原地自更新 → 设了 `auto_updates`。数据落在**框架共享**的 `Application Support/MXU/`，`zap` 因此只删 MaaEnd 自己那两个文件，见「已知注意事项 → maaend」 |
-| `font-lxgw-wenkai-screen` | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
-| `font-lxgw-wenkai-gb-screen` | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
-| `font-lxgw-wenkai-mono-screen` | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
-| `font-lxgw-wenkai-mono-gb-screen` | 1.522 | 同上 | 等宽屏幕阅读版 GB 版 |
+| [`font-lxgw-wenkai-screen`](#字体类-cask) | 1.522 | [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) | 霞鹜文楷屏幕阅读版，半陆标字形，Roboto 打底补字 |
+| [`font-lxgw-wenkai-gb-screen`](#字体类-cask) | 1.522 | 同上 | 屏幕阅读版 GB 版，**陆标（简体）字形 —— 简体用户装这个** |
+| [`font-lxgw-wenkai-mono-screen`](#字体类-cask) | 1.522 | 同上 | 等宽屏幕阅读版，Inconsolata 打底补字 |
+| [`font-lxgw-wenkai-mono-gb-screen`](#字体类-cask) | 1.522 | 同上 | 等宽屏幕阅读版 GB 版 |
 
-> `micyou` / `splayer-next` / `lume-app` / `nigate` / `folia` 装完**必须重签名才能启动**（上游打包缺陷，不是安装出错）。命令见下文「已知上游问题 → 签名不一致」。`brew info --cask <name>` 的 Caveats 段里也会打出来；机器上已配了 LaunchAgent 自动做这件事，见「签名不一致 → 自动修复」。
-
-
+> [!NOTE]
 > 屏幕阅读版与主版「霞鹜文楷」的区别：字重由 Medium 改为 Regular 并调整度量数据，PC / 手机屏幕上更清晰。上游只提供裸 `.ttf`（没有压缩包），所以 4 个变体各自一个 cask —— 一个 cask 只能带一组 `url` / `sha256`。只想要其中一个的话装对应的即可。
+
+> [!IMPORTANT]
+> 上面两张表**没有自动化**：新增 cask 时除了往 `Casks/` 放文件，还要手动补一行。CI 与 autobump 会自己覆盖新 cask（它们遍历 `Casks/**/*.rb`），表不会。
+
+## 签名与公证的三类处置
+
+<img src="docs/assets/signature-triage.svg" alt="签名分流流程图：Gate 1 是 codesign --verify --deep --strict，退非 0 走处置 A 启动前重签名；退 0 再看 Gate 2 的 spctl -a -vvv 里有没有 source=Notarized Developer ID，没有走处置 B 清 quarantine，有则处置 C 装完即用" width="100%" />
+
+| 处置 | 判据 | 要做什么 | 收录 |
+| :-: | --- | --- | --- |
+| **A** | `codesign --verify --deep --strict` **退非 0** | **启动前**重签名 + 清 quarantine，见[已知上游问题](#签名不一致时要先重签名) | `micyou` `splayer-next` `lume-app` `nigate` `folia` `maaend` |
+| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` |
+| **C** | 上一条退 0，且出现 `source=Notarized Developer ID` | 什么都不用做 | `netcatty` `ztools` `clipp` `pelmet` `mectrics` `opennow` `ferail` |
+| — | 尚未按这两个命令复核 | 见该 cask 那条注意事项 | `menu-bar-dock` |
+
+> [!WARNING]
+> **别拿本机的 `spctl -a` 当公证证据。** 这台机器 `spctl --status` 是 `assessments disabled`，所以任何包都会回 `accepted`。判断顺序只能是：先 `codesign -dvvv` 读 `Authority` / `TeamIdentifier`，再看 `spctl -a -vvv` 有没有 `source=Notarized Developer ID`；只有后者出现才谈得上公证，`netcatty` / `ztools` 那份 `accepted` 才是真证据。
+
+A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自相矛盾，macOS 直接判「已损坏」；B 的签名自洽，只是没有 Developer ID，被 Gatekeeper 拦在「无法验证的开发者」。而**这个差别在本机验不出来**（Gatekeeper 评估关着），所以别拿本机的成功当「公证过」的结论。
 
 ## 目录结构
 
@@ -95,13 +153,17 @@ brew uninstall --cask --zap splayer-next
 │   │   ├── ferail.rb
 │   │   ├── folia.rb
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
+│   ├── h/
+│   │   └── hibernal.rb
 │   ├── j/
-│   │   └── jhentai.rb
+│   │   ├── jhentai.rb
+│   │   └── jhentaix.rb
 │   ├── l/
 │   │   └── lume-app.rb
 │   ├── m/
 │   │   ├── maaend.rb
 │   │   ├── mectrics.rb
+│   │   ├── menu-bar-dock.rb
 │   │   ├── micyou.rb
 │   │   └── my-window-pip.rb
 │   ├── n/
@@ -120,20 +182,24 @@ brew uninstall --cask --zap splayer-next
 │   └── z/
 │       └── ztools.rb           # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
 ├── Formula/                    # 目前为空，保留占位
+├── docs/
+│   └── assets/                 # README 用的两张静态 SVG（无动画、不引外部字体）
 ├── .github/
 │   ├── dependabot.yml          # 每周自动更新 workflow 里的 action 版本
 │   └── workflows/
 │       ├── tests.yml           # push / PR 触发：测试 + 校验
 │       └── autobump.yml        # 每天检查上游 Release，开升级 PR
-└── README.md
+├── README.md                   # 简体中文
+└── README.en.md                # English
 ```
 
 `Casks/<首字母>/<name>.rb` 与扁平的 `Casks/<name>.rb` 都能被 Homebrew 识别（内部按 `Casks/**/*.rb` 递归匹配）。这里跟随官方仓库用首字母分目录，cask 多了以后不会挤在一个平面里。
 
 ## 添加新的 cask
 
+> [!IMPORTANT]
 > **前提**：上游必须提供稳定的 GitHub Release，而且产物文件名里带版本号。
-> 只有满足这一点，`livecheck` + autobump 才能自动工作。如果上游只有 rolling tag（如 `latest`）或产物名不带版本号，见下文「无法自动检测时的维护方案」。
+> 只有满足这一点，`livecheck` + autobump 才能自动工作。如果上游只有 rolling tag（如 `latest`）或产物名不带版本号，见下文[无法自动检测时的维护方案](#无法自动检测时的维护方案)。
 
 ```sh
 cd ~/Projects/homebrew-tap
@@ -157,11 +223,11 @@ $EDITOR Casks/<首字母>/<name>.rb
 - `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0`）。但**低于 Homebrew 自身支持下限的版本号写了也白写**：`depends_on macos: :catalina` / `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant minimum、`brew style` 直接红，这种就改写成 `depends_on :macos`（`micyou` / `jhentai` / `nigate` 都是这样；别为了凑一个版本号去写更低的系统支持）
 - `desc` 不重复包名、结尾不加句号、不超过 80 字符，**也不要出现平台名**（写了 `macOS` 会被 `Cask/Desc` 判 `Description shouldn't contain the platform`）
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
-- **签名判定别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分三类：签名自洽 + 公证（netcatty / ztools / clipp / pelmet，装完即用）、自洽但没有 Developer ID（reinplayer / jhentai / arcthumb 是 ad-hoc，my-window-pip 是自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats）、声明有资源却没有 `_CodeSignature`（micyou / splayer-next / lume-app / nigate / folia，判「已损坏」，必须重签）、以及**封套在但内容对不上**（maaend：`_CodeSignature` 齐、可 `--verify --deep --strict` 照样红，成因见下文「同一判定门、另一种成因」那节）。后两类的判定门是同一条命令，所以修复手段也一样；第一类与第三类的区别只在于「能不能启动」在这台机器上验不出来，别拿本机的成功当公证过的结论
+- **签名判定按[上面那两个命令](#签名与公证的三类处置)走，别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分四类：签名自洽 + 公证（处置 C）、自洽但没有 Developer ID（ad-hoc 或自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats，处置 B）、声明有资源却没有 `_CodeSignature`（判「已损坏」，必须重签，处置 A）、以及**封套在但内容对不上**（`maaend`：`_CodeSignature` 齐、可 `--verify --deep --strict` 照样红，成因见[下文](#maaend-的另一种封套成因)）。后两类的判定门是同一条命令，所以修复手段也一样；第一类与第三类的区别只在于「能不能启动」在这台机器上验不出来，别拿本机的成功当公证过的结论
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
 - **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：jhentai 的缓存叫 `Caches/JHenTai` / `Caches/cacheimage`。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
 - **装上不等于生效的那类（扩展 / 驱动）只写 Caveats**：需要 `pluginkit -a` / `-e use`、`systemextensionsctl` 之类激活的 cask，把命令原样放进 Caveats 并给出「谁在供这个功能」的查法（`arcthumb` 的实测教训：旧路径的注册会盖住新装的这份），不要为了省事改成 `postflight`
-- **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样，见「已知注意事项 → jhentai」），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
+- **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样，见[jhentai](#jhentai)），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
 - **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。**上游不发的也没关系：GitHub 自己为每个 asset 存了 sha256**，`gh api repos/<owner>/<repo>/releases/latest --jq '.assets[] | .name + " " + (.digest // "no-digest")'` 直接给（值带 `sha256:` 前缀；clipp / rawviewer 实测对得上）。注意它只证明「这个 URL 拿到的字节就是 GitHub 上挂的那个 asset」，不能替上游发布环节背书；两处都拿不到的（如 JHenTai）就照实说明只有一个来源
 - app 里若还打包了 CLI / TUI 可执行文件，用 `binary "#{appdir}/X.app/Contents/MacOS/x-cli", target: "x-cli"` 暴露出来
 
@@ -218,6 +284,7 @@ Homebrew 7 的 `postflight_steps` 能在安装后跑命令（官方有 cask 在�
 gh workflow run "brew bump"
 ```
 
+> [!NOTE]
 > 注意：用默认 `GITHUB_TOKEN` 开的 PR 不会再触发 workflow（GitHub 会屏蔽由该 token 产生的事件），所以升级 PR 上看不到 CI 状态。要拿到 CI 状态，把 `autobump.yml` 里的 `HOMEBREW_GITHUB_API_TOKEN` 换成一个 fine-grained PAT（`contents: write` + `pull-requests: write`）。不换也能用，只是需要人工肉眼核对版本号与 checksum。
 
 ### 手动
@@ -255,6 +322,7 @@ brew install --cask --dry-run hibernalglow/tap/splayer-next   # 预演
 brew install --cask hibernalglow/tap/splayer-next             # 真装
 ```
 
+> [!WARNING]
 > 三条实测过的坑。一是 `brew audit <文件路径>` 被直接禁掉（`Error: Calling brew audit [path ...] is disabled! Use brew audit [name ...] instead.`），只能给 cask 名 —— 所以「裸路径就能跑 audit」是不成立的，文件得先落到 tap 克隆里。二是 `brew audit --tap=hibernalglow/tap <name>` 带着 `--tap` 时会**把整个 tap 都审一遍**（实测为了验一个 cask 去下了 `folia` 的 172 MB 包），只想验一个就别加 `--tap`。三是 `brew audit … | tail -6` 之后的 `$?` 是 `tail` 的退出码，得重定向到日志文件或靠 `PIPESTATUS` 才拿得到 brew 的真实结果 —— 「拿管道后的退出码证明一条断言绿了」这种错法实测会骗人（本机 `api.github.com` 还会偶发 `curl (35) SSL_ERROR_SYSCALL`，报成 `exception while auditing`，加 `https_proxy` 重跑就好）。
 
 **大产物反复下不完时，可以直接喂 Homebrew 的下载缓存**（`folia` 的 172 MB 包今天被 GitHub 掐断三次：`curl` 报 exit 18，`brew install` 两次 `Download failed`）。文件名规则是 `$(brew --cache)/downloads/<sha256(URL)>--<产物名>` —— 注意是 **`downloads/` 子目录**，放 cache 根目录 Homebrew 不认（会当没缓存、继续重下）：
@@ -295,6 +363,7 @@ brew test-bot --only-setup
 brew test-bot --only-tap-syntax
 ```
 
+> [!NOTE]
 > 本地 `brew audit` 需要可用的 Command Line Tools。本机 CLT 26.6 对 macOS 27.0 偏旧时，`brew audit` 会直接以 `Your Command Line Tools are too outdated` 退出（连官方 cask 也一样），此时 `brew style` / `ruby -c` / `install` 仍然正常。**CI 不受影响** —— 同一份 cask 在 `macos-26` runner 上 `brew audit --strict --online` 是通过的。要修本机：`sudo rm -rf /Library/Developer/CommandLineTools && xcode-select --install`。
 
 ## CI 都检查什么
@@ -311,14 +380,14 @@ brew test-bot --only-tap-syntax
 
 ## 后续扩展
 
-新增 MImage 之类的独立 macOS GUI 应用，直接往 `Casks/` 里放文件即可，CI 与 autobump 会自动覆盖 —— 两个 workflow 都是遍历 `Casks/**/*.rb`，不维护软件清单，所以**不需要改任何 workflow**。
+新增 MImage 之类的独立 macOS GUI 应用，直接往 `Casks/` 里放文件即可，CI 与 autobump 会自动覆盖 —— 两个 workflow 都是遍历 `Casks/**/*.rb`，不维护软件清单，所以**不需要改任何 workflow**（但[当前收录](#当前收录)那两张表要手动补一行）。
 
 约定：
 
 - **不引入额外依赖**：只用 Homebrew 自带的 `brew style` / `audit` / `livecheck` / `bump` + 官方 `Homebrew/actions/*`，不写自定义脚本、不加第三方 action
-- **上游产物缺陷用 `caveats` 写清楚，不用 install steps 自动改**：失败会连应用一起删掉，理由见上文
+- **上游产物缺陷用 `caveats` 写清楚，不用 install steps 自动改**：失败会连应用一起删掉，理由见[上文](#不要用-install-steps-给上游打补丁)
 - **版本信息单一来源**：版本号只写在 cask 的 `version` 里，靠 `livecheck` 从上游推导，不额外维护 manifest
-- **上游必须可自动检测**：否则见下
+- **上游必须可自动检测**：否则见[下文](#无法自动检测时的维护方案)
 - formula（CLI 工具）目前不需要；真要加，把 `brew tap-new` 生成的 `publish.yml`（`brew pr-pull`，给 bottle 用）从模板取回来即可 —— 现在没有 formula，那个 workflow 永远跑不起来，所以没放进来
 
 ### 无法自动检测时的维护方案
@@ -337,10 +406,11 @@ end
 
 `:github_releases` 会遍历所有 release 而不是只看 `/releases/latest`，适合上游把稳定版标成 prerelease 的情况。
 
-**2. 退化为手动更新。** `version :latest` 的 rolling 包只能这样：按上文「更新版本 → 手动」流程走一遍，每季度检查一次。
+**2. 退化为手动更新。** `version :latest` 的 rolling 包只能这样：按上文[更新版本 → 手动](#手动)流程走一遍，每季度检查一次。
 
 **3. 换渠道。** 既不满足又需要频繁更新的，考虑不做成 cask，改用上游自己的安装方式，别给 tap 引入长期手工负担。
 
+> [!NOTE]
 > 注意：`brew style <tap>` 会用 rubocop-md 把 README 里的 Ruby 代码块也一起检查，所以文档中的 Ruby 片段同样要保持缩进与风格正确，否则 CI 会红。
 
 **tag 带 `+build` 后缀时，`strategy :github_latest` 会自己把后缀吃掉。** JHenTai 的 tag 是 `v8.0.16+334`、产物叫 `JHenTai-8.0.16+334.dmg`，但 `github_latest` 走的是 `GithubReleases::DEFAULT_REGEX`（`v?(\d+(?:\.\d+)+)`），到 `+` 就停，于是 livecheck 报 `8.0.16`。cask 里若照 tag 写全 `version "8.0.16+334"`，`brew audit` 直接失败：
@@ -363,9 +433,9 @@ end
 
 ## 已知上游问题
 
-### 签名不一致：`splayer-next` / `micyou` / `lume-app` / `nigate` / `folia` 装完必须重签名
+### 签名不一致时要先重签名
 
-这几个应用带的是**同一类上游打包缺陷**：可执行文件是链接期 ad-hoc 签名（`codesign -dv` 显示 `Signature=adhoc` + `flags=0x2(adhoc,linker-signed)`；`nigate` 是同一件事，只是多了 hardened runtime 位 `0x20002`），签名声明了「有密封资源」，但 `.app` 包体从未生成 `Contents/_CodeSignature`。macOS 读到这个自相矛盾就判定为损坏：
+`micyou` / `splayer-next` / `lume-app` / `nigate` / `folia` 带的是**同一类上游打包缺陷**：可执行文件是链接期 ad-hoc 签名（`codesign -dv` 显示 `Signature=adhoc` + `flags=0x2(adhoc,linker-signed)`；`nigate` 是同一件事，只是多了 hardened runtime 位 `0x20002`），签名声明了「有密封资源」，但 `.app` 包体从未生成 `Contents/_CodeSignature`。macOS 读到这个自相矛盾就判定为损坏：
 
 ```text
 "SPlayer-Next.app" is damaged and can't be opened.
@@ -385,8 +455,10 @@ xattr -dr com.apple.quarantine /Applications/SPlayer-Next.app
 - **必须在启动之前修。** 带着坏签名去打开，macOS 会把 app 直接丢进废纸篓 —— 这就是「打开报损坏、然后应用不见了」的原因。真丢了就重新 `brew install` 再修一遍。
 - **真正起作用的是重签名。** 实测已重签的副本即使保留 `com.apple.quarantine` 也能正常启动；清 quarantine 只是把 Gatekeeper 的提示一并消掉，属于顺手做的事。
 - **每次升级都要重做。** Homebrew 原样解包上游产物，修复不会被保留：`brew upgrade --cask splayer-next` 之后要再执行一次 —— 所以下面给了个自动化的办法。
-- **但不放进 cask 的 install steps**，理由见上文「不要用 install steps 给上游打补丁」：那个方案失败时会把刚装好的应用一起删掉。
+- **但不放进 cask 的 install steps**，理由见[上文](#不要用-install-steps-给上游打补丁)：那个方案失败时会把刚装好的应用一起删掉。
 - 根治要上游改打包流程（Tauri / electron-builder 默认只签二进制、不打资源封套），可以去上游开 issue。
+
+`brew info --cask <name>` 的 Caveats 段里也会打出来这两条命令。
 
 #### 自动修复（推荐）
 
@@ -428,7 +500,7 @@ launchctl bootout gui/$(id -u)/com.hibernalglow.cask-sign-repair  # 卸载
 
 日志写在 `~/Library/Logs/cask-sign-repair.log`。**新增带同类缺陷的 cask 时**，要把它对应的 `.app` 路径同时加进 `WatchPaths` 和脚本的 `DEFAULT_APPS` —— 两处都是硬编码的固定列表，不做全 `/Applications` 扫描（那样每次要 `--deep` 校验几十个大应用，太慢，而且会去动本 tap 之外的签名）。
 
-### 同一判定门、另一种成因：`maaend` 的资源封套被文件名规范化打断
+### maaend 的另一种封套成因
 
 `maaend` 与上面那五个**不是同一种坏**，但撞的是同一道判定门。它的 `Contents/_CodeSignature/CodeResources` 是存在的，问题出在**一个模板图在两个地方存成了两个 Unicode 形状**：
 
@@ -451,27 +523,165 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 - 它 100% 属于「`--verify --deep --strict` 过不去」那一族，也就是上面自动修复脚本的判定口径；但**本机 Gatekeeper 评估是关着的**，所以「不修就双击会不会被判定损坏」在这台机器上测不出来。我确实把它装上并启动过（`open` 起、AppleScript 退，进程正常、功能正常），这只能说明 **AMFI 不查资源封套**，不能说明 Gatekeeper 会放行。因此 `caveats` 按「首启前修一次」写，而**是否把 `/Applications/MaaEnd.app` 加进 `WatchPaths` / `DEFAULT_APPS`（那是改机器上的 LaunchAgent，不是改仓库）留给用户定**。
 - 它同时还是 ad-hoc 签名（`flags=0x2(adhoc)`、`TeamIdentifier=not set`）、没有公证票（`xcrun stapler validate` 说没钉票），所以就算封套修好，Gatekeeper 也仍会拦「无法验证的开发者」—— `caveats` 里那两条命令是一起给的，少一条都不算修完。
 
-## 已知注意事项
+## 逐条注意事项
 
-**`splayer-next` 没有设 `auto_updates true`，这是刻意的。** 上游确实带了 `electron-updater`（`app-update.yml` 指向自己的 GitHub Release），但发布的 macOS 包是 **adhoc 签名、没有 Developer ID**（`codesign -dv` 显示 `Signature=adhoc`、`TeamIdentifier=not set`）。未签名的 macOS 应用自更新不可靠，而且一旦标了 `auto_updates true`，`brew outdated` 就不再上报该 cask —— 等于把 tap 唯一的升级提醒也关掉了。所以这里让 Homebrew 作为升级渠道（`brew upgrade --cask splayer-next`）。
+按 token 字母序。每一节是这个 cask 独有的判据与实测结论；跨 cask 通用的规则集中在最后的[通用规则](#通用规则)。
 
-**`netcatty` 的签名是正常的，不需要重签名。** `codesign --verify --deep --strict` 与 `codesign -v` 都退 0，`Contents/_CodeSignature` 存在，`spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Qi Chen (H7WS5L2ML4)`）。所以它既不进 `caveats`，也不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS` 列表 —— 那个列表只收纳带缺陷的 cask。写新 cask 前先按上文验一遍签名，能提前判断要不要走修复流程。
+#### arcthumb
 
-**`netcatty` 同样没有设 `auto_updates true`，理由和 `splayer-next` 不同。** 它是签名 + 公证齐备的 Electron 应用，产物里也确实有 `app-update.yml`（`updaterCacheDirName: netcatty-updater`），但它的更新是「提示模型」：检查更新由界面里的操作触发，代码里写死 `autoInstallOnAppQuit = false`，即后台不会静默换版本。既然应用不会绕过 Homebrew 自行升级，就让 Homebrew 继续当升级渠道，`brew outdated` 才有意义。**判断依据是可执行的，不是看有没有 `electron-updater` 依赖**：查 `codesign -dv` 是否有 Developer ID，再看产物里 updater 的实际行为。
+本仓第一个「装上 ≠ 生效」的 cask。它是 Quick Look 缩略图扩展（`com.apple.quicklook.thumbnail`），扩展必须被注册并启用才会出现在 Finder 里：上游自己的 `macos/README.md` 就写明 `lsregister` 单独用不够，要 `pluginkit -a <appex>` + `pluginkit -e use -i com.citrussoda.ArcThumb.thumbnail` + `qlmanage -r cache`。这两条**只进 Caveats**，不做成 `postflight` —— 理由就是[上文](#不要用-install-steps-给上游打补丁)那节（沙箱套不上时会把刚解包的 app 删掉）。实测还抓到一个真实坑：**Quick Look 的注册是按路径记的**，这台机器上留有一条指向 `~/Applications/ArcThumb.app` 的 0.11.0 旧注册（`+` = 已启用），于是新装进 `/Applications` 的 0.12.0 看起来完全没作用；只有 `pluginkit -m -v -i <id>` 能看出是谁在供缩略图。查法与 `pluginkit -r` 的解法已写进 Caveats（本次没替机器清旧注册，那是开发者自己的工作副本）。
 
-**`ztools` 的签名也是正常的，`auto_updates` 同样按上面这条判断没设。** `spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)`），`codesign --verify --deep --strict` 退 0，所以不进 Caveats 的修复流程、也不进 LaunchAgent 列表。updater 是 `electron-updater` 6.8.9（`updaterCacheDirName: ztools-updater`），但代码里 `autoDownload = false` 且 `autoInstallOnAppQuit = false` —— 和 netcatty 一样的「提示模型」，因此升级渠道留给 Homebrew。`depends_on macos: :monterey` 取自二进制的 `LC_BUILD_VERSION`（`minos 12.0`），与 `Info.plist` 的 `LSMinimumSystemVersion` 恰好一致。Caveats 里只有辅助功能权限这一条：它靠 `uiohook-napi` 监听全局快捷键，未授权时快捷键没有反应（上游文案原话是「需要辅助功能权限来响应快捷键并完成键盘与窗口操作」）。应用自己有引导页，也有「重置辅助功能权限」入口，用于升级后 macOS 留着过期授权记录的情况。
+数据面与校验：扩展是沙箱的，设置**只写一个文件** —— `~/Library/Containers/com.citrussoda.ArcThumb.thumbnail/Data/Library/Application Support/ArcThumb/settings`，上游明确说不用 `UserDefaults`（非沙箱的 helper 写不进沙箱的偏好域），实测 `~/Library/Preferences/com.citrussoda.ArcThumb.plist` 与 `~/Library/Application Support/ArcThumb` 都不存在，所以 `zap` 就容器那一条，和上游 uninstall 里的 `rm -rf` 完全一致。两个架构各做了**三重对照**：上游随包发的 `.sha256` + GitHub asset digest + 本地 `shasum` 全等，且分别挂包核对内层 Mach-O 是 arm64 / x86_64 thin、两片 `minos` 都是 11.0 并与 `LSMinimumSystemVersion` 一致 —— 11.0 恰好等于 Homebrew 自己的支持下限，于是 `depends_on macos: :big_sur` 会被判 redundant、`audit_min_os` 也提前返回，这里就写 `depends_on :macos`。签名是 ad-hoc 但自洽（app 与 appex 的 `--verify --deep --strict` 都退 0），属清 quarantine 那一类，不进 LaunchAgent 列表。`homepage` 暂用仓库地址：产品页 `https://citrussoda.com/en/arcthumb` 从本机 TLS 直接 `SSL_ERROR_SYSCALL`，`brew audit --online` 会因为不可达失败；等接入 Developer ID + 公证（仓库有 `MACOS_SIGN_IDENTITY` 这个开关，没设）之后可以换回去。
 
-**`clipp` 的两点特殊性。** 一是**上游自己就发 cask**（README 里写 `brew install martona/tap/clipp`），本 tap 仍收一份：token 各自独立、装了互不冲突，代价只是多一份被 autobump / CI 跟踪的对象，换的是「一个 tap 装齐」的顺手 —— 但要清楚这是在替上游维护，上游那份少列了 `~/Library/Application Support/net.clipp.ios`（`keyvend.sock` 所在，实测启动后就有）与 `~/Library/Application Support/Clipp`（`DataPaths.mm` 定死的加密寄存器快照，装好组之后才出现），也少了 `uninstall quit:`（菜单栏应用）。抄上游文件前先跑 `brew style`：它的 `homepage "https://clipp.net"` 会被 `Cask/HomepageUrlStyling` 判 offense（域名后必须带 `/`）。二是**产物名里没有版本号**（`clipp-macos-arm64.zip`，上游 README 明说链接永远指向最新），看着违反上面「产物文件名带版本号」的前提，其实没有：URL 把版本放在 release tag 那一段（`download/v#{version}/…`），`strategy :github_latest` 读的也是 tag 而非文件名，livecheck / autobump 照常工作。`version` 因此取 tag 的四段式 `1.5.0.160`（= `CFBundleVersion`），不是 `CFBundleShortVersionString` 的 `1.5.0`。残余风险只有一个：上游原地重传同 tag 产物时 sha 会变而版本号不动 —— 该项目每个产物都有 Sigstore attestation，且 `SHA256SUMS.txt` 与 cask 里的 sha 实测对得上。macOS 14 是上游的测试口径而非功能需求（脚注原话「The 14 floor is arbitrary; I just don't have older Macs」），`LSMinimumSystemVersion` 与二进制 `minos` 都写 14.0，所以 `depends_on macos: :sonoma` 照 14 报，别猜更低。
+#### clamless
 
-**`my-window-pip` 属于 reinplayer 那一类：签名自洽，但没公证。** `codesign -dvvv` 给的是 `Authority=MyWindowPip Release Signing`、`TeamIdentifier=not set`、`flags=0x0(none)` —— 上游 README 自己写明是**自签证书、未经 Apple 公证**。但 `Contents/_CodeSignature` 在、`codesign --verify --deep --strict` 退 0，所以它不是「损坏」，macOS 报的是「无法验证的开发者」而不是「已损坏」；同理它的判定门能过，**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那里只收必须重签的坏包），Caveats 给的是清 quarantine（或右键 → 打开 一次）。另外它必需的「屏幕录制」授权按**固定路径 + 固定签名身份**存活，cask 装进 `appdir` 正好对上，上游那句「别从 DMG / 下载目录直接跑」正是这个原因。
+本仓第一个「真值与 CI 只能选一个」的 cask。`Info.plist` 的 `LSMinimumSystemVersion` 和上游 README 都写 13.0，但 `vtool -show-build` 对 `ClamlessMenu` 与包内 helper `clamless-display` 都给 `minos 26.0`（SDK 26.5）—— 根因在 `scripts/build.sh`：`clang` / `swiftc` 都没带 `-target`，部署目标跟着 macos-26 的发布 runner 走。dyld 认的是 load command，所以 macOS 13–15 的用户装得上、跑不起。本仓「以二进制为准」那条规矩在这里指向 `:tahoe`，代价是 `brew audit --strict --online` 一定红：`cask/audit.rb` 只读 plist（有 `LSMinimumSystemVersion` 就不去看 Mach-O），拿到 `:ventura` 后与 cask 声明不等就 `add_error`，而这条 `add_error` 前面没有 `tap.audit_exception` 的入口 —— 能让它绿的写法只有照抄那个假值。**两个方向都实测过**：`depends_on macos: :tahoe` 时 `brew audit --strict --online clamless` 退 1、只报这一条（`Artifact defined :ventura as the minimum macOS version but the cask declared a depends_on stanza with a minimum macOS version of :tahoe`）；换成 `:ventura` 后退 0、其余 strict + online 检查一项不少全过 —— 也就是这个 cask 离 CI 绿只差那一个假值。SleepBar（2026-09-21）是同一种形状的冲突，当时选择不发；这次先落真值，min_os 这一条按已知失败对待，上游在 `build.sh` 里补上 `-target` 重新发版之后 `:ventura` 就同时是真值且绿。
 
-> **别拿本机的 `spctl -a` 当公证证据。** 这台机器 `spctl --status` 是 `assessments disabled`，所以任何包都会回 `accepted` —— my-window-pip 就是这样，`accepted` 但 `origin=` 后面跟的是自签身份、**没有** `source=Notarized Developer ID` 那一行。判断顺序应该是：先 `codesign -dvvv` 读 `Authority` / `TeamIdentifier`，再看 `spctl -a -vvv` 有没有 `source=Notarized Developer ID`；只有后者出现才谈得上公证，netcatty / ztools 那份 accepted 才是真证据。
+其余照旧：签名 ad-hoc 但自洽（`_CodeSignature` 在、`--verify --deep --strict` 退 0、无 `Authority`、`TeamIdentifier=not set`）→ 清 quarantine 那一类，不进 LaunchAgent 列表；产物只有 arm64 一片。`auto_updates` 没设的依据是 updater 实现（`src/menubar/main.swift` 里 `URLSession` GET `api.github.com/repos/TCXM/clamless/releases/latest`，回调只弹「去下载」按钮；bundle 内没有 Sparkle、也没有安装动作）→ 提示模型，升级渠道留给 brew。sha256 两个来源（GitHub asset 的 `digest` + 本地 `shasum` 全等）。上游其实算了校验文件 —— `release.yml:63` 用 `shasum -a 256 -c` 验 `dist/Clamless-$VERSION.dmg.sha256`，可 `release.yml:119` 的 `gh release upload` 只传 dmg（还带 `--clobber`），所以校验文件没进 release，等于少一个来源；`--clobber` 也意味着同 tag 原地重传是可能的，autobump 撞上时别只比版本号。`brew livecheck --cask clamless` 实测 `clamless: 0.1.10 ==> 0.1.10`，`strategy :github_latest` 走通。`zap` 两条**未经启动验证**，是读源码定的：`UserDefaults.standard` → `Preferences/local.clamless.menu.plist`，`DebugLog` 在 `main.swift:149` 无条件建 `Logs/Clamless`；登录项走 `SMAppService.mainApp`（`main.swift:784`）由系统托管，没有 LaunchAgent plist 可删。它是 LSUIElement 菜单栏应用、而且要接着外接屏才有意义，本次没有在本机启动，启停实测留给使用者（跑一次再看 `~/Library/Caches/local.clamless.menu` 有没有冒出来）。
 
-**`my-window-pip` 也没设 `auto_updates`，这次是读了实现才确定的。** `Sources/my-window-pip/Updater.swift` 是手写的（`URLSession` + `CryptoKit` 校验上游随包发的 `.dmg.sha256`，无第三方依赖）：`checkSilently` 启动时只查询、回调里也只弹提示，下载要点「下载并安装」才开始，下完**打开挂载好的安装窗，由用户自己把 app 拖进 Applications** —— 典型的提示模型，后台不会静默换版本，所以升级渠道留给 Homebrew。`zap` 那四条的依据：应用自己写的只有 `Preferences.swift`（`UserDefaults.standard` 封装）和 `Log.swift`（`~/Library/Logs/MyWindowPip/MyWindowPip.log`，2 MB 滚动），`Caches` / `HTTPStorages` 两条是系统替它建的，四条都在**启动 + 退出**之后实测存在；上游 README 亦称捕获帧只在内存与显存、正常路径一个字都不写，所以这里没有任何用户内容。
+#### clipp
 
-**`jhentai` 是沙箱应用，`zap` 的写法因此和别的都不一样。** `codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox`（**判断沙箱只认这个，别猜**），于是 Flutter 的 `path_provider` 拿到的都是容器内路径：一切都落在 `~/Library/Containers/top.jtmonster.jhentai/Data/`。更要紧的是 `PathService.getVisibleDir()` 在 macOS 上返回 `getApplicationDocumentsDirectory()`，而 `path_provider_foundation` 只对 Application Support / Caches 追加 bundle id 子目录、**Documents 不追加**（见其 `_getDirectoryPath`）—— 所以 `db.sqlite`（书库）、`jhentai.gs`（设置）、`logs/`、`download/`（下载的作品）是平铺在 `Data/Documents/` 里的。整容器删就等于删用户下载，违反「`--zap` 不碰用户内容」这条（同 `lume-app` 不列 VM 镜像），所以这里只列可再生项，连登录态一起清的口子留给用户自己（Caveats 里给了容器目录）。以上跑过真机：启动 + 退出后 `Data/Documents/` 里确实是 `jhentai.gs` / `jhentai.bak` / `jhentai.version` / `db.sqlite` / `logs` / `download` / `local_gallery` / `save` 平铺；`Data/Library/Preferences/` 下**没有**应用自己的 plist（设置不走 UserDefaults），图片缓存则在 `Data/Library/Caches/` 下叫 `JHenTai` / `cacheimage` / `flutter_engine` / `WebKit` —— **容器里的缓存目录名不一定等于 bundle id**，照 bundle id 猜会全部落空。另外上游 README 把 macOS / Linux 构建标成 **No maintenance**，autobump 提的升级 PR 要额外留意：新版本可能压根没人在 mac 上验过。
+两点特殊性。一是**上游自己就发 cask**（README 里写 `brew install martona/tap/clipp`），本 tap 仍收一份：token 各自独立、装了互不冲突，代价只是多一份被 autobump / CI 跟踪的对象，换的是「一个 tap 装齐」的顺手 —— 但要清楚这是在替上游维护，上游那份少列了 `~/Library/Application Support/net.clipp.ios`（`keyvend.sock` 所在，实测启动后就有）与 `~/Library/Application Support/Clipp`（`DataPaths.mm` 定死的加密寄存器快照，装好组之后才出现），也少了 `uninstall quit:`（菜单栏应用）。抄上游文件前先跑 `brew style`：它的 `homepage "https://clipp.net"` 会被 `Cask/HomepageUrlStyling` 判 offense（域名后必须带 `/`）。二是**产物名里没有版本号**（`clipp-macos-arm64.zip`，上游 README 明说链接永远指向最新），看着违反上面「产物文件名带版本号」的前提，其实没有：URL 把版本放在 release tag 那一段（`download/v#{version}/…`），`strategy :github_latest` 读的也是 tag 而非文件名，livecheck / autobump 照常工作。`version` 因此取 tag 的四段式 `1.5.0.160`（= `CFBundleVersion`），不是 `CFBundleShortVersionString` 的 `1.5.0`。残余风险只有一个：上游原地重传同 tag 产物时 sha 会变而版本号不动 —— 该项目每个产物都有 Sigstore attestation，且 `SHA256SUMS.txt` 与 cask 里的 sha 实测对得上。macOS 14 是上游的测试口径而非功能需求（脚注原话「The 14 floor is arbitrary; I just don't have older Macs」），`LSMinimumSystemVersion` 与二进制 `minos` 都写 14.0，所以 `depends_on macos: :sonoma` 照 14 报，别猜更低。
 
-`jhentai` 的签名与 `reinplayer` 同类（`Signature=adhoc`、`TeamIdentifier=not set`，还带 `com.apple.security.get-task-allow`，这条本身就与公证冲突），Caveats 给清 quarantine，不进 LaunchAgent 列表。两点附带提醒：它的 tag 带 `+334` 这种构建号，livecheck 要按上文「tag 带 `+build` 后缀」那条补正则，否则 `brew audit` 会因版本号被截断而失败；`depends_on` 也别照二进制直写 —— 两片 minos 不同（x86_64 `10.15`、arm64 `11.0`），写 `depends_on macos: :catalina` 会被 `Homebrew/OSDependsOn` 判 redundant minimum 让 `brew style` 变红，正确写法就是 `depends_on :macos`。
+#### ferail
+
+`depends_on :macos` 不是偷懒，是被两条规则夹出来的。上限那边：`LSMinimumSystemVersion` 与唯一那个 Mach-O（`ferail-gpui`）的 `minos` 都是 **11.0**（`plutil` 与 `vtool` 各读一次，两处独立一致），而 11 正好等于 Homebrew 自己的 `HOMEBREW_MACOS_OLDEST_ALLOWED`；于是写 `:big_sur` 会被 `Homebrew/OSDependsOn` 判「redundant minimum macOS version」让 `brew style` 变红 —— 这条**做了证伪**：把那一行临时换成 `depends_on macos: :big_sur` 后 `brew style` 退 1 并原样报那句，改回 `depends_on :macos` 才干净。与 `arcthumb` 同一个位置（那里是 `minos 11.0` 恰好等于下限）。
+
+顺带记一条**「绿了不代表那条断言跑过」**的实例：`audit_min_os` 开头就是 `return if app_min_os <= HOMEBREW_MACOS_OLDEST_ALLOWED`，11.0 命中提前返回，所以 `brew audit --strict --online ferail` 退 0 里**压根没有**版本下限这一项的功劳 —— ferail 的下限完全靠上面那两处独立读数撑着，别拿 audit 的绿当它验过。同一次运行真正验到的是 `version` / `url` / `sha256` / `homepage` / desc 与 token 格式那几类（以及 `--online` 的产物下载与解包）。
+
+其余：签名按上游自己那张表说的「Developer ID signed **and notarized**」成立 —— `codesign -dvvv` 三级 `Authority`（`Developer ID Application: John Knopper (C43N3NG7Z5)`）+ `Notarization Ticket=stapled` + `flags=0x10000(runtime)`，`xcrun stapler validate` 退 0 → 没有任何修复类 Caveats，也不进 LaunchAgent 列表；entitlements 只有 `com.apple.security.cs.disable-library-validation`，**不是沙箱应用**，所以 `~/Library/...` 直接写、不套 `Containers` 前缀，代价是首次访问 Desktop / Documents / Downloads 会弹 TCC 授权（已写进 Caveats）。产物只有 arm64 一片。**不设 `auto_updates`** 的依据读的是实现文档：macOS 那条路是「把 asset 下载到 `~/Downloads`（`.part` 再改名）→ Open 只是挂载 DMG → 装仍由人来」，且自动检查是 opt-in、新装默认关（`docs/features/UPDATES.md`、`PRIVACY.md:79`），也就是 netcatty / ztools / clipp 那一档提示模型。`zap` 只有一条，依据是 `PRIVACY.md:121` 声明 macOS 只有 `~/Library/Application Support/Ferail` 这一个主目录，且上游明说删它不动你浏览过的文件；顺带一条隐私向提醒：那里面存着 Ant Trail 访问记录、Favorites 与重复哈希缓存，`--zap` 会连带抹掉「访问过哪些路径」这份记录。sha256 只有**两个**来源（GitHub asset `digest` + 本地 `shasum` 全等）—— 这个 release 的 6 个 asset 里没有随包校验文件，只有各平台的包和一个 symbols zip。路径同样是读源码/文档定的，**没做启动验证**。
+
+#### folia
+
+是「上游根本没打算签名」的典型。三个 mac workflow 全设 `CSC_IDENTITY_AUTO_DISCOVERY: false`（连找身份都不找），产物就是 linker-signed ad-hoc + 没有 `Contents/_CodeSignature`，`codesign --verify --deep --strict` 报 `code has no resources but signature indicates they must be present` —— 与 micyou / lume-app 同族，`/Applications/Folia.app` 已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。上游自己有一篇 `docs/desktop/macos-app-damaged.md`，给的三招是右键打开 / 「仍要打开」/ 清 quarantine，但那台机器上 Gatekeeper 是关着的，**「只清隔离属性够不够」在这边复现不了**，所以按本仓口径仍归到必须重签那一类。`zap` 三条是看着进程验过的：`Application Support/Folia` 里是整套 Chromium profile（`Cache` / `Cookies` / `Local Storage` / `IndexedDB` / 自己的 `Preferences`），而 `Caches/Folia`、`Logs/Folia`、`HTTPStorages/<bundle id>`、saved state 从启动到正常退出全没出现；`Caches/folia-major-updater` 是包内 `app-update.yml` 声明的 `updaterCacheDirName`，只有更新器真下载才会出现，照 `ztools` 的先例保留。注意 `--zap` 会把本地音乐库的索引清掉（存的是曲目路径，音乐文件本身不动）。
+
+`auto_updates` 依旧没设，两层理由：`electron/main.cjs` 里 `autoDownload = false`、`autoInstallOnAppQuit = false`、应用内自动更新是 `ENABLE_AUTO_UPDATE_SETTING_KEY` 的 opt-in、`quitAndInstall` 由界面点出来 —— 形态上是 netcatty 那种提示模型；而**真把那个开关打开也不会成功**：Squirrel.Mac 靠签名一致性装更新，ad-hoc 包不满足，所以 Caveats 里直接写「别开应用内更新，升级走 brew」。发布通道这块是本仓第一种「latest 与 prerelease 混排」的形状：稳定版是 `v0.7.7` 这种 semver tag，而 `limo` / `cielo` / `cielo-wip-…` 全是 **prerelease**（nightly / canary，各自带 `beta.yml` / `alpha.yml`），`strategy :github_latest` 只认非 prerelease 的 latest，所以 autobump 不会被 nightly 带走 —— 与「tag 不带版本号」那类问题不同，不用加 `regex`。
+
+#### hibernal
+
+本仓库自己的应用（`HibernalGlow/hibernal`），从菜单栏或全局快捷键触发一次深度休眠。签名按 cask 里记的：发布产物 **ad-hoc 签名、未公证**（维护者没有 Developer ID），但签名自洽、bundle 是 universal（arm64 + x86_64），所以 Finder 不会判「已损坏」，报的是「无法验证的开发者」—— 归处置 B。Caveats 给的是一次手动放行（System Settings → Privacy & Security → **Open Anyway**），Homebrew 装的东西带 quarantine，所以每次 install / upgrade 之后都要走这一次。
+
+两点别的 cask 没有的形状：
+
+- **首次休眠会要一次管理员密码**，用来装 root helper（`com.hibernal.helper`）跑 `pmset` 序列；之后的休眠不再问。就绪判定比对的是已装 helper 的字节，所以 app 升级不会重新弹密码，除非 helper 本身变了。
+- **`zap` 带一个 `sudo` 脚本**去摘那个 LaunchDaemon 与 `/Library/PrivilegedHelperTools/com.hibernal.helper`。helper 是 app 第一次休眠时自己装的、不是 cask 装的，所以它属于 `zap`（opt-in）而不属于 `uninstall`：普通卸载故意留一个能用的 helper 给下次安装。`brew uninstall --cask --zap hibernal` 才会连它一起清掉，这条命令会要密码。
+
+它改的是电源管理状态（`hibernatemode`、standby、powernap、womp），并且会在睡眠前弹出外接盘 —— 这是功能本身，不是副作用，装之前该知道。
+
+#### jhentai
+
+是沙箱应用，`zap` 的写法因此和别的都不一样。`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox`（**判断沙箱只认这个，别猜**），于是 Flutter 的 `path_provider` 拿到的都是容器内路径：一切都落在 `~/Library/Containers/top.jtmonster.jhentai/Data/`。更要紧的是 `PathService.getVisibleDir()` 在 macOS 上返回 `getApplicationDocumentsDirectory()`，而 `path_provider_foundation` 只对 Application Support / Caches 追加 bundle id 子目录、**Documents 不追加**（见其 `_getDirectoryPath`）—— 所以 `db.sqlite`（书库）、`jhentai.gs`（设置）、`logs/`、`download/`（下载的作品）是平铺在 `Data/Documents/` 里的。整容器删就等于删用户下载，违反「`--zap` 不碰用户内容」这条（同 `lume-app` 不列 VM 镜像），所以这里只列可再生项，登录态一起清的口子留给用户自己（Caveats 里给了容器目录）。以上跑过真机：启动 + 退出后 `Data/Documents/` 里确实是 `jhentai.gs` / `jhentai.bak` / `jhentai.version` / `db.sqlite` / `logs` / `download` / `local_gallery` / `save` 平铺；`Data/Library/Preferences/` 下**没有**应用自己的 plist（设置不走 UserDefaults），图片缓存则在 `Data/Library/Caches/` 下叫 `JHenTai` / `cacheimage` / `flutter_engine` / `WebKit` —— **容器里的缓存目录名不一定等于 bundle id**，照 bundle id 猜会全部落空。另外上游 README 把 macOS / Linux 构建标成 **No maintenance**，autobump 提的升级 PR 要额外留意：新版本可能压根没人在 mac 上验过。
+
+签名与 `reinplayer` 同类（`Signature=adhoc`、`TeamIdentifier=not set`，还带 `com.apple.security.get-task-allow`，这条本身就与公证冲突），Caveats 给清 quarantine，不进 LaunchAgent 列表。两点附带提醒：它的 tag 带 `+334` 这种构建号，livecheck 要按[上文那条](#无法自动检测时的维护方案)补正则，否则 `brew audit` 会因版本号被截断而失败；`depends_on` 也别照二进制直写 —— 两片 minos 不同（x86_64 `10.15`、arm64 `11.0`），写 `depends_on macos: :catalina` 会被 `Homebrew/OSDependsOn` 判 redundant minimum 让 `brew style` 变红，正确写法就是 `depends_on :macos`。
+
+#### jhentaix
+
+`jhentai` 的本仓库 fork（`HibernalGlow/JHenTai`），带磁力链接相关工具。**8.0.16+337 起这个 fork 换了自己的 bundle id** `top.jtmonster.jhentaix`，所以两个 app 不再抢 `jhentai.app`、也不再共用容器 —— 与 `jhentai` 可以并存，但登录态与书库**不共享**（容器按 bundle id 分家），Caveats 里写明了这一点。
+
+`zap` 那一份列表跟着新 bundle id 走：`Application Support` 那条由 `path_provider` 从 bundle id 推出来，其余名字是应用自己硬编码的文件与缓存目录名（改名时没变）。**与 `jhentai` 不同，这一份没有对真机启停验过**，只是沿用了上游那轮实测的同名文件结论，若哪条路径实际不符就照实改。和上游一样只列可再生项：`Data/Documents/download`、`local_gallery`、`save` 与 `db.sqlite` 是用户下载的内容，不进 `zap`。
+
+签名与 `jhentai` 同一类：ad-hoc、无 Developer ID、未公证（cask 注释记的是「对这份 dmg 本身跑 `codesign -dv` 得到 `Signature=adhoc`、`TeamIdentifier=not set`」），Homebrew 又打上 quarantine → 首启被 Gatekeeper 拦，清 quarantine 或右键打开一次，每次 `brew upgrade --cask jhentaix` 之后重做。tag 同样带 `+337` 这种构建号，所以 `livecheck` 里那条 `regex(/v(\d+(?:\.\d+)+\+\d+)/)` 是必需的，理由见[无法自动检测时的维护方案](#无法自动检测时的维护方案)。
+
+#### lume-app
+
+轻量虚拟机管理器，处置 A：可执行文件 linker-signed ad-hoc、签名声明有密封资源却没有 `Contents/_CodeSignature`，装完必须按[已知上游问题](#签名不一致时要先重签名)那条重签名，已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。
+
+`zap` 这里刻意**不列用户的 VM 镜像** —— 那是用户内容，删了就没了。同一类取舍的反方向见 `ztools`：那里连用户自己装的插件都会被 `--zap` 清掉。
+
+#### maaend
+
+版本下限是这个 tap 里最纠结的一片，三处读数互相打架。`LSMinimumSystemVersion` 写 `10.13`；两片主二进制彼此就不一致（arm64 是 `LC_BUILD_VERSION minos 11.0`，x86_64 是老的 `LC_VERSION_MIN_MACOSX 10.13`）；把 arm64 那个包里的 Mach-O 逐个 `vtool -show-build` 扫一遍，结果是 **14 片 `minos 13.3`**（11 个 `maafw/libMaa*.dylib` + `maafw/MaaPiCli` + `maafw/plugins/libMaaPluginDemo.dylib` + `agent/cpp-algo`）、4 片 11.0（主二进制自己 + `libfastdeploy_ppocr` / `libonnxruntime.1.19.2` / `libopencv_world4`）、1 片 12.0（`agent/go-service`），另外 5 个 `maafw/MaaAgentBinary/minitouch/*` 是安卓 ELF、mac 上压根不加载（所以真实下限只能从 13.3 那批读，别被它们干扰）。dyld 是按 load command 拒人的，所以真实下限就是 13.3，plist 那句完全是摆设。这里写 `depends_on macos: :ventura`（13.0）而不是 `:sonoma`：`:ventura` 是**不高于真值的最粗符号**，代价是 macOS 13.0–13.2 仍会「装得上、起不来」；写 `:sonoma` 则把 13.3–13.x 整体挡在门外，而那批人走 ADB 控制器并不碰 14 的限制，那是更假的值。另外别把这次的 `brew audit --strict --online maaend` 退 0 当下限被验过 —— `audit_min_os` 只读 plist，拿到 10.13、低于 `HOMEBREW_MACOS_OLDEST_ALLOWED`(11) 就提前 return，**这条检查压根没跑**（与 `ferail` 同形）。还有一条不在任何 plist 里：`libMaaMacOSControlUnit.dylib` 里写死 `macOS 14.0 or later required for ScreenCaptureKit`，也就是**「macOS 窗口」控制器实际要 14+**，13.3 上能起进程但那条路子不通，已写进 `caveats`。
+
+数据目录是框架共享的，`zap` 因此只能按文件名挑。启动 + 退出实测：所有落点都在 `~/Library/Application Support/MXU/` 底下 —— 不是应用名目录，因为 `get_app_data_dir()`（MistEO/MXU `src-tauri/src/commands/utils.rs`）在 macOS 分支里**硬编码** `Application Support/MXU`，MaaEnd 自己的东西靠**文件名**区分：`config/mxu-MaaEnd.json`（40 KB，实例与任务配置，就是用户的全部设置）与 `cache/config_backup/mxu-MaaEnd-<时间戳>.json`（滚动备份）。同目录里另外那些**都不进 `zap`**：`config/maa_option.json` 是 MaaFramework 的全局运行项、`cache/etag-index.json` 是通用抓取缓存、`debug/*.log` 是日志、`~/Library/Caches/com.misteo.mxu` 用的是 **MXU 的 bundle id 而不是 `com.maaend.app`** —— 任何别的 MXU 系应用都会跟它们同写一处，`--zap` 顺手清就是把别人的一起抹了。没有偏好 plist、没有 saved state、没有 HTTPStorages（退出之后逐项看过），bundle 自身也**一个字都没写**。这次只跑了一轮启停、没真跑过任务，跑任务会往 `debug/` 里落识别图与日志，那条路径不在 `zap` 里、想彻底清就按 `caveats` 的说法自己删。
+
+设了 `auto_updates true`，判据仍是「会不会自己换 bundle」，读的是实现。MXU 前端 `src/components/InstallConfirmModal.tsx` 把 `targetDir: basePath` 传给 `installUpdate()`，而 `basePath` 就是 `get_exe_dir()`（`interfaceLoader.ts`，macOS 上 = `/Applications/MaaEnd.app/Contents/MacOS`）；`apply_full_update()` 随后把更新包内容**原地覆盖进那个目录**，被替换的旧条目挪进 `Contents/MacOS/cache/old`。所以应用自己升过一轮之后 tap 里的 `version` 当场过期，`caveats` 里写了「要么别用应用内更新，要么补一次 `brew upgrade --cask maaend` 对齐」。**注意这条是读实现定的，没有真跑过一次更新**（更新要 MirrorChyan 或 GitHub 下载几百 MB 的包）。
+
+其余核对：产物名与 tag 都带版本号（`MaaEnd-macos-<arch>-v<ver>.dmg`，v2.28 / v2.29 / v2.30 三代命名一致），两个架构的 sha256 **两源全等**（GitHub asset 的 `digest` + 本地 `shasum`，这个 release 不随包发校验文件）；`brew livecheck --cask maaend` 双向验过 —— 版本号正确时报 `2.30.1 ==> 2.30.1`，把 `version` 临时改成 `2.30.0` 时报 `2.30.0 ==> 2.30.1`。`homepage` 用 `https://maaend.com/`：这个域名**直连 DNS 会超时、走代理 200**，所以第一次 `brew audit --online` 以 `curl (18) Transferred a partial file` 失败，带代理重跑才退 0（与 `arcthumb` 那次「产品页不可达就退回仓库地址」不同，这里网站是活的，别改回仓库地址）。签名与封套那部分见[maaend 的另一种封套成因](#maaend-的另一种封套成因)。
+
+#### mectrics
+
+本仓第一个「签名、公证、Sparkle 三样都齐」的 cask，也是 `auto_updates` 那条判据的对照组。`spctl -a -vvv` 出现 `source=Notarized Developer ID`（`Developer ID Application: Faruk KAMÇICI (G88QSG6V2M)`），所以没有任何修复类 Caveats —— 注意这一行在**本机 Gatekeeper 评估关着时仍然有信息量**：ad-hoc 的 my-window-pip 只给 `origin=`、不给 `source=Notarized Developer ID`。`auto_updates` 的差别这次落到了一个可查的 key 上：mectrics 的 `Info.plist` 里**显式**写 `SUEnableAutomaticChecks = false`（上游 README 也这么说：只有你主动点 Settings → Check for Updates 才会查），所以不设；status-trio 同一个 key 根本不存在，Sparkle 在未指定时按开启处理，所以那份设了 `auto_updates true`。两边都不是「有没有 updater 依赖」的判断。
+
+另外三点实测：产物名不带版本号（v1.6.0 → v1.8.0 一路都叫 `Mectrics.dmg`，版本只在 tag 段，`github_latest` 照常工作，与 `clipp` 同形）；包里带一个**独立的只读 CLI** `Contents/Helpers/mectrics`（universal，`mectrics check` 只报规则不改设置），所以这里给了 `binary`，而上游自己的「Install CLI…」是在 `/usr/local/bin` 建软链 —— Intel 上那正好是 Homebrew 的 bin，两条路只能选一条，已写进 Caveats。`zap` 三条是启动 + 退出实看到的：`Application Support/Mectrics`（两个 JSON 日志）、App Group 容器 `group.com.mectrics.app`（`widget-snapshot.json`）、以及偏好域（Sparkle 的 `SUHasLaunchedBefore` 也在里面）；`Caches/com.mectrics.app`、`HTTPStorages`、saved state 都没出现，所以没列。
+
+#### menu-bar-dock
+
+菜单栏版 Dock（`EthanSK/Menu-Bar-Dock`）。**这个 cask 的签名尚未按[上面那两个命令](#签名与公证的三类处置)逐项复核**，所以收录表里「处置」列留空；cask 里没有修复类 Caveats，只有下面两条行为提醒。
+
+设了 `auto_updates true`，判据还是「会不会自己换 bundle」：bundle 里带 Sparkle 2.6.4，`SUFeedURL` 指向 `https://www.menubardock.com/appcast.xml`，并且 `SUEnableAutomaticChecks` 与 `SUAllowsAutomaticUpdates` 都开着 —— 也就是每日自动检查、由 Sparkle 自己装更新，属 status-trio / pelmet 那一档，不是 netcatty 那种提示模型。所以应用自更新之后 tap 里的 `version` 就过期，Caveats 里写了「补一次 `brew upgrade --cask menu-bar-dock` 对齐，或者干脆不用应用内更新」。
+
+版本下限这次没有 `clamless` 那种冲突，但形状值得记：主可执行文件 `minos 10.15`、`LSMinimumSystemVersion` 一致，而包内那个登录项 `Launcher.app` 是 `minos 10.14`、Sparkle 的 helper 10.13、附带的 Swift dylibs 10.9 —— 以主可执行文件为准，真实下限 10.15。它低于 `HOMEBREW_MACOS_OLDEST_ALLOWED`，所以声明写成 `depends_on :macos`（写版本号等于写一条 Homebrew 拦不住的约束）。`brew audit` 在这里看不见任何细节：`audit_min_os` 读 plist 拿到 10.15，低于下限就提前 return。
+
+两条使用提醒：首次启动会注册那个登录项（「Launch at login」默认开着），上游 README 也建议把 Dock 设成自动隐藏。`zap` 只有两条（`~/Library/Logs/Menu Bar Dock` 与偏好 plist），依据是读源码 —— 沙箱 entitlements 被上游关掉了（右键菜单要能退掉别的应用），所以偏好落在普通的 `~/Library/Preferences/<bundle-id>.plist`，Sparkle 的记账也在同一个域里，没有任何东西写 Application Support / Caches / HTTPStorages。**这一条同样没做启停实测**，路径是按源码定的。
+
+#### micyou
+
+处置 A 的原始样本：plist 写 `10.13`、二进制 `minos 11.0`，所以 `depends_on` 是 `depends_on arch: :arm64` + `depends_on :macos`（`:big_sur` 会被判 redundant）。装完必须重签名，已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。它还需要一个虚拟音频设备才能把手机声音暴露成系统输入，这条写在 Caveats 里（`brew install --cask blackhole-2ch`）。附带两个 CLI：`micyou-cli` / `micyou-tui`，用 `binary` 暴露出来。
+
+#### my-window-pip
+
+属于 reinplayer 那一类：签名自洽，但没公证。`codesign -dvvv` 给的是 `Authority=MyWindowPip Release Signing`、`TeamIdentifier=not set`、`flags=0x0(none)` —— 上游 README 自己写明是**自签证书、未经 Apple 公证**。但 `Contents/_CodeSignature` 在、`codesign --verify --deep --strict` 退 0，所以它不是「损坏」，macOS 报的是「无法验证的开发者」而不是「已损坏」；同理它的判定门能过，**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那里只收必须重签的坏包），Caveats 给的是清 quarantine（或右键 → 打开 一次）。另外它必需的「屏幕录制」授权按**固定路径 + 固定签名身份**存活，cask 装进 `appdir` 正好对上，上游那句「别从 DMG / 下载目录直接跑」正是这个原因。
+
+也没设 `auto_updates`，这次是读了实现才确定的。`Sources/my-window-pip/Updater.swift` 是手写的（`URLSession` + `CryptoKit` 校验上游随包发的 `.dmg.sha256`，无第三方依赖）：`checkSilently` 启动时只查询、回调里也只弹提示，下载要点「下载并安装」才开始，下完**打开挂载好的安装窗，由用户自己把 app 拖进 Applications** —— 典型的提示模型，后台不会静默换版本，所以升级渠道留给 Homebrew。`zap` 那四条的依据：应用自己写的只有 `Preferences.swift`（`UserDefaults.standard` 封装）和 `Log.swift`（`~/Library/Logs/MyWindowPip/MyWindowPip.log`，2 MB 滚动），`Caches` / `HTTPStorages` 两条是系统替它建的，四条都在**启动 + 退出**之后实测存在；上游 README 亦称捕获帧只在内存与显存、正常路径一个字都不写，所以这里没有任何用户内容。
+
+#### netcatty
+
+签名是正常的，不需要重签名。`codesign --verify --deep --strict` 与 `codesign -v` 都退 0，`Contents/_CodeSignature` 存在，`spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Qi Chen (H7WS5L2ML4)`）。所以它既不进 `caveats`，也不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS` 列表 —— 那个列表只收纳带缺陷的 cask。写新 cask 前先按上文验一遍签名，能提前判断要不要走修复流程。
+
+同样没有设 `auto_updates true`，理由和 `splayer-next` 不同。它是签名 + 公证齐备的 Electron 应用，产物里也确实有 `app-update.yml`（`updaterCacheDirName: netcatty-updater`），但它的更新是「提示模型」：检查更新由界面里的操作触发，代码里写死 `autoInstallOnAppQuit = false`，即后台不会静默换版本。既然应用不会绕过 Homebrew 自行升级，就让 Homebrew 继续当升级渠道，`brew outdated` 才有意义。**判断依据是可执行的，不是看有没有 `electron-updater` 依赖**：查 `codesign -dv` 是否有 Developer ID，再看产物里 updater 的实际行为。
+
+#### nigate
+
+属于「启动前必须重签」那一族（micyou / splayer-next / lume-app）：可执行文件是 `flags=0x20002(adhoc,linker-signed)`，签名声明有密封资源，包里却没有 `Contents/_CodeSignature`，`codesign --verify` 直接报 `code has no resources but signature indicates they must be present`。`/Applications/Nigate.app` 已经同时加进 LaunchAgent 的 `WatchPaths` 和脚本的 `DEFAULT_APPS`，`repair.sh` 对它实测有效（重签后 `--verify --deep --strict` 退 0、quarantine 清掉）。另外它的 bundle id 是 `io.hoochanlon.github`（和 reinplayer 那个占位 id 一个味道），Electron 的 profile 目录用 `package.json` 的 `free-ntfs-for-mac`（没有 `productName`）—— 注意**整套 Chromium 状态都在这个目录里**（`Cache` / `Code Cache` / `Cookies` / `Local Storage` / 它自己的 `Preferences` 都在下面），所以 `~/Library/Caches/free-ntfs-for-mac`、`~/Library/Logs/...`、`~/Library/Preferences/io.hoochanlon.github.plist`、savedState 一个都不会生成（两次启动 + 正常退出实测皆无），`zap` 因此只有两条；第二条 `Caches/free-ntfs-for-mac-updater` 是包内 `app-update.yml` 的 `updaterCacheDirName` 声明的，要等更新器真下载东西才出现，与 `ztools` 同理保留。两片 minos 也不同（arm64 `11.0`、x86_64 `10.15`，`LSMinimumSystemVersion` 写 10.15）—— 都低于 Homebrew 自己支持的下限，所以 `depends_on macos: :big_sur` 和 `:catalina` 都会被判 redundant，只能写 `depends_on :macos`。
+
+它的依赖是系统级的，这点和别的 cask 不是一回事。NTFS 读写不来自它本体，而是 macFUSE + ntfs-3g：它的「一键安装 / 卸载依赖」是在打包进来的 `node-pty` 终端里跑 jsdelivr 上的 `ninja/kunai.sh` / `ninja/ninpo.sh`（`curl | bash`），要管理员权限。两件事要注意 —— 一是 **`ninpo.sh` 会把 macFUSE 从系统里摘掉**，本机那条 SwiftBar + ntfs-3g 的路线还依赖 macFUSE，别顺手点卸载；二是 Apple Silicon 上装 macFUSE 还要进 Recovery 改安全策略。也就是说 cask 只解决「app 本体 + 重签名」，驱动那一层是它自己在跑脚本装。上游也不随包发校验文件，两个架构的 sha 只有各自下载实测这一个来源（Intel 包已确认是 x86_64 thin、同为 1.4.5）。最后：v1.4.5 发布于 2026-01-23，上游 README 让人去 `/tags` 下载，但 `releases/latest` 指的就是它，livecheck 与 autobump 不受影响。
+
+#### opennow
+
+第二个「Developer ID + 公证 + hardened runtime 三样齐、装完即用」的原生应用（前面只有 `pelmet`），也是 `auto_updates` 那条判据第三次落在「会不会自己换 bundle」上。公证按老规矩两处对：`codesign -dvvv` 给完整三级 `Authority`（`Developer ID Application: MUHAMMED EMIN YILMAZER (VR766AGP7G)` → Certification Authority → Apple Root CA）加 `Notarization Ticket=stapled`、`xcrun stapler validate` 退 0，`spctl -a -vvv` 才打出 `source=Notarized Developer ID`。**上游 README 那句「The macOS app is not notarized」在 nightly 段落里**，v1.0.1 的 `RELEASE-INFO.json` 明写 `"macos": "Developer ID; notarized; stapled"`，bundle 也一致 —— 照 README 写 Caveats 就写错了。`auto_updates` 的依据照旧不是「有没有 updater 依赖」，而是它动不动 bundle：`update_apply/mod.rs:240-254` 在被替换安装的**同级目录**建 `.opennow-update-<128 位随机 hex>` 暂存（macOS 上就是 `/Applications/` 底下），`bundle.rs` 挂 DMG、要求新 bundle 的 `TeamIdentifier` 与已装那个一致，然后原地换掉 → 换过一次 tap 里的 `version` 就过期，所以设标记并在 Caveats 里写清「应用自己升过后跑 `brew upgrade --cask opennow` 对齐」。附带一条本仓第一种形状：**更新中途被打断会在 `/Applications` 留下那个隐藏暂存目录，`brew uninstall --cask` 不会替它收拾**。
+
+版本下限这次**没有** clamless 那种冲突，而且成因值得记：这个 bundle 的 `Info.plist` **压根没有** `LSMinimumSystemVersion` 键，于是审计的 `cask_bundle_min_os` 走 Mach-O 回退分支，`vtool -show-build` 给 `minos 13.0`（SDK 15.5），与上游「macOS 13+」一致 → `depends_on macos: :ventura` 同时是真值和审计推出来的值，`brew audit --strict --online opennow` 实测退 0。这次的绿**做过证伪**：改成 `:tahoe` 后同一命令退 1、仍报 `Artifact defined :ventura ... but the cask declared ... :tahoe` —— 那个 `:ventura` 只可能来自 Mach-O，所以「plist 缺键就回退读二进制」这条不是推的，是拿一次红验出来的。产物只有 arm64 一片（上游原话 "Intel Macs are not included"）；sha256 三重对照（上游随包发的 `SHA256SUMS` + GitHub asset `digest` + 本地 `shasum` 全等，每个 asset 还各带一个 `.manifest.json`，那是它更新器的 ed25519 签名清单，不是校验文件）。`homepage` 用 `https://opennow.zortos.me/`：仓库的 homepage 字段是空的，`opennow.app` 只是 Qt 的 `organizationDomain`（解析不到），而 README 里链的这个站标题就是「OpenNOW — Open-source GeForce NOW client」。
+
+`zap` 只有一条，而且是**故意只有一条**。设置与账号数据全在 Rust 核心那个目录（`opennow-core/src/settings.rs:828-830` → `~/Library/Application Support/OpenNOW`，里面是 `settings.json`）；Qt 侧 `QSettings` 只出现在 `AppController.cpp:399-413` 的 `#ifdef Q_OS_WIN` 分支里，也就是 **macOS 上不写偏好 plist**，别按惯例补 `~/Library/Preferences/io.github.opencloudgaming.OpenNOW.plist` 那条。反过来 `~/Pictures/OpenNOW/{Screenshots,Recordings}` 是它落截图与录屏的地方（`opennow-core/src/media.rs:18-20`），属用户内容，按 `jhentai` / `lume-app` 那条红线**不进 `zap`**，只在 Caveats 里告诉人自己去删。以上路径全是读源码定的，**没做启动验证**（它要 NVIDIA 账号登录、还要有可串的游戏才有意义），所以启停实测与 `Caches` 有没有东西仍欠一次。
+
+#### pelmet
+
+第二个设 `auto_updates true` 的 cask，判据与 `status-trio` 同一条：`Contents/Frameworks/Sparkle.framework` 在那儿，用户点了 Install 就是**原地换 bundle**，tap 里的 `version` 当场过期（上游把它写得很明白：`SUAllowsAutomaticUpdates = false`、6 小时轮询、"explicit approval before Install and Relaunch"）。
+
+上游自己有 tap（`brew install --cask ismatBabirli/pelmet/pelmet`，仓库里的 `Casks/pelmet.rb` 是 canonical 源、release workflow 每次同步 `version` + `sha256`），所以收我们这份的唯一意义是那几处实测出来的差异：它的 cask **没有 `depends_on arch: :arm64`**，而产物实测只有 arm64 一片（dmg 和 zip 各 `lipo -archs` 一次都一样）→ Intel 用户装得上跑不了；没有 `auto_updates`；没有 `uninstall quit:`（菜单栏应用）；另外它写了 `verified:`，本仓不写（Homebrew 已废弃该参数）。这三条值得回上游一个 issue，发不发你说。
+
+公证这一项按前面那条规矩验：`codesign -dvvv` 有完整三级 `Authority`（Developer ID Application: Ismat Babirli (FBH9JL8MB9) → Certification Authority → Apple Root CA）加 `Notarization Ticket=stapled`，`spctl -a -vvv` 才打出 `source=Notarized Developer ID`。`minos 13.0` 与 `LSMinimumSystemVersion` 一致 → `:ventura`；sha256 三重对照（上游随包发的 `checksums.txt` + GitHub digest + 本地 `shasum`）。`zap` 里只有偏好 plist 是**启动 + 退出**实测落地的（里面同时存着应用设置、Sparkle 首启标记和 `lastAcknowledgedWhatsNewVersion`），其余三条照上游列表保留。
+
+> [!NOTE]
+> 一个容易看错的点：上游 README 说「不需要任何特殊权限」，那只针对隐藏 / 显示的主机制（撑宽分隔符把图标推出屏外，同 Hidden Bar / Dozer）。它**可选**的 one-click access 要辅助功能权限，本次首启就在偏好里写下了 `didPromptForAccessibility` / `awaitingOneClickGrant` —— 两句不矛盾，别据此判断它「说话不算数」。
+
+#### rawviewer
+
+把「沙箱里缓存目录名不等于 bundle id」这条推到了极端：全程只留下两个路径。容器 `~/Library/Containers/com.example.rawviewer/` 在启动时创建；从启动 → 打开一张图 → 正常退出一路看着，`Data/Library/Caches/` 里只有 `flutter_engine`，`Data/Library/Preferences/com.example.rawviewer.plist` 真实写入（`shared_preferences` 的 `flutter.*` 键）—— 而 `path_provider` 虽然挂在依赖里，`Caches/<bundle id>` 和 `Application Support/<bundle id>` **一次都没出现**，HTTPStorages / WebKit / saved state 也没有。所以 `zap` 只有两条，比按惯例写的五条少三条 —— 多出来的那三条正是 jhentai 那轮被实测推翻的同一种形状。顺带一条隐私向的观察：plist 里 `flutter.recent_open_items` 存的是**用户照片的真实完整路径**（还有 `NSNavLastRootDirectory`），`--zap` 会把它一起清掉。
+
+上游缺陷与判定：bundle id 停在 Flutter 占位值 `com.example.rawviewer`（和 `reinplayer` 的 `com.example.reinPlayer` 同一类），容器目录与文件关联全挂在它上面，值得去开 issue；签名是 ad-hoc、未公证，但 `Contents/_CodeSignature` 在、`--verify --deep --strict` 退 0 → 属清 quarantine 那一类，**不进** LaunchAgent 列表。`auto_updates` 没设的依据：`lib/core/update_checker.dart` 只 `GET api.github.com/repos/stmtc233/rawviewer/releases/latest`（10 秒超时，fetcher 可注入便于测试），整个文件没有下载 / 安装 / `Process` 调用 —— 连提示模型都算不上，只是告知有新版本。
+
+#### reinplayer
+
+是 ad-hoc 签名，但签名本身自洽，不算「损坏」类缺陷。它是 Flutter 应用（带 FlutterMacOS / media_kit / mpv 等 30+ 框架），`codesign -v` 与 `codesign --verify --deep --strict` 都对全包退 0、`Contents/_CodeSignature` 存在 —— 但它**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那个列表只收「启动前必须重签」的坏签名 cask），因为 LaunchAgent 的判定门是 `codesign --verify --deep --strict`、而 reinplayer 这个门能过，修了也修不到 quarantine。真正的坑有两层：上游 `CFBundleIdentifier` 没改、停留在占位 `com.example.reinPlayer`；且整体 ad-hoc（无 Developer ID、未公证），而 Homebrew 装完会给 `.app` 打上 `com.apple.quarantine`（实测 `/Applications/rein_player.app` 装完确实带着）。quarantine + 无 Developer ID → 首次启动被 Gatekeeper 拦「无法验证的开发者」。Caveats 里给了 `xattr -dr com.apple.quarantine` 清隔离属性（或更省事：右键 → 打开 一次加入用户豁免；需要的话再 `codesign --force --deep --sign -` 重签），不设 `auto_updates`（ad-hoc 自更新不可靠，让 Homebrew 当升级渠道）。
+
+#### splayer-next
+
+没有设 `auto_updates true`，这是刻意的。上游确实带了 `electron-updater`（`app-update.yml` 指向自己的 GitHub Release），但发布的 macOS 包是 **adhoc 签名、没有 Developer ID**（`codesign -dv` 显示 `Signature=adhoc`、`TeamIdentifier=not set`）。未签名的 macOS 应用自更新不可靠，而且一旦标了 `auto_updates true`，`brew outdated` 就不再上报该 cask —— 等于把 tap 唯一的升级提醒也关掉了。所以这里让 Homebrew 作为升级渠道（`brew upgrade --cask splayer-next`）。
+
+签名属处置 A（声明有密封资源却没有 `Contents/_CodeSignature`），装完必须重签名，已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。
+
+#### status-trio
+
+本 tap 第一个写 `auto_updates true` 的 cask，判据要跟前面几条对齐清楚。前面 netcatty / ztools / clipp 都**没**设，依据是「应用不会绕过 Homebrew 把自己换掉」：它们的 `electron-updater` 都是 `autoDownload = false` + `autoInstallOnAppQuit = false`，走到最后一步是把挂载好的安装窗丢给你、由人拖进 `/Applications`，等同手动安装。Status Trio 不一样，它带的是完整 Sparkle 2（`SUFeedURL` 指向仓库里的 `appcast.xml`、`SUPublicEDKey` 有值、`SUEnableInstallerLauncherService` 开着），用户在更新窗点一下 Install Update 就是**原地替换 bundle**：那时 tap 里的 `version` 还指着旧号，`brew outdated` 会一直报一个已经装不存在的升级。所以判据是同一句 —— **会不会自己换掉 bundle** —— 只是这里的答案是「会」，于是设标记、并在 Caveats 里写清副作用：设了 `auto_updates` 之后 brew 不再提醒升级，应用自己升过一轮后要跑 `brew upgrade --cask status-trio` 把元数据对齐，或者干脆在设置里关掉更新检查。
+
+其余都按老规矩验过：两片 `minos` 都是 15.0、与 `LSMinimumSystemVersion` 一致（`depends_on macos: :sequoia`，`audit_min_os` 不会挑刺）；sha256 三重对照（上游随包发的 `.dmg.sha256` + GitHub asset digest + 本地 `shasum`）；签名 ad-hoc 但自洽（`_CodeSignature` 在、strict verify 退 0）→ 清 quarantine 那一类，不进 LaunchAgent。`zap` 两条是**启动 + 退出之后**才成立的：运行期间 `~/Library/Preferences/` 一个文件都不出现（cfprefsd 攒着），退出才落 `com.lingsmbp.StatusTrio.plist`，里面同时有应用设置和 Sparkle 的 `SUHasLaunchedBefore` —— 也就是说 **Sparkle 的偏好写在应用自己的域里**，我先前按惯例加的 `org.sparkle-project.Sparkle.plist` 是个不存在的猜测，已删。上游文档另外给了两条边界值得记：它不读也不存 Wi-Fi 密码（macOS 没有用已存密码连接的公开 API），也不为「立即充满」写 SMC 或塞特权 helper。
+
+#### ztools
+
+签名也是正常的，`auto_updates` 同样按上面这条判断没设。`spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)`），`codesign --verify --deep --strict` 退 0，所以不进 Caveats 的修复流程、也不进 LaunchAgent 列表。updater 是 `electron-updater` 6.8.9（`updaterCacheDirName: ztools-updater`），但代码里 `autoDownload = false` 且 `autoInstallOnAppQuit = false` —— 和 netcatty 一样的「提示模型」，因此升级渠道留给 Homebrew。`depends_on macos: :monterey` 取自二进制的 `LC_BUILD_VERSION`（`minos 12.0`），与 `Info.plist` 的 `LSMinimumSystemVersion` 恰好一致。Caveats 里只有辅助功能权限这一条：它靠 `uiohook-napi` 监听全局快捷键，未授权时快捷键没有反应（上游文案原话是「需要辅助功能权限来响应快捷键并完成键盘与窗口操作」）。应用自己有引导页，也有「重置辅助功能权限」入口，用于升级后 macOS 留着过期授权记录的情况。
+
+### 通用规则
 
 **Electron 应用的 `zap` 路径用应用名，不是 bundle id。** `netcatty` 的数据在 `~/Library/Application Support/netcatty`（`electron-updater` 的缓存在 `~/Library/Caches/netcatty-updater`）；这是 Electron 的规则 —— `userData` 取 `package.json` 的 `productName`，没有则取 `name`。Netcatty 打包后的 `package.json` 没有 `productName`，所以落成应用名 `netcatty`。对照 Tauri 应用（如同机的 `flclash`）走的是 bundle id，形如 `~/Library/Application Support/com.follow.clash`。**写 `zap` 前先确认走的是哪一套**，否则路径全错：
 
@@ -488,67 +698,9 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 
 **上面这条规则只对「没改过 `userData`」的 Electron 应用成立。** `ztools` 就是反例：主进程入口一启动就调 `app.setPath("userData", ~/.ztools)`（可用 `ZTOOLS_DATA_ROOT` 覆盖），Chromium 的整套 profile、插件、剪贴板历史、lmdb 索引全落在家目录那个隐藏文件夹里，所以 `~/Library/Caches/ZTools` 这类路径**根本不会出现**（启动并退出后实测：不存在）。`~/Library/Application Support/ZTools` 会建，但是个空目录 —— 那是 Electron 在重定向生效前先算默认路径时留下的，不是老版本升级遗留（本 tap 早先的判断，实测后改掉）。判断方法：在 `app.asar` 里搜 `setPath("userData"`，命中就不能照抄应用名。
 
+> [!WARNING]
 > 代价是 `brew uninstall --cask --zap ztools` 会连用户自己装的插件（`~/.ztools/plugins`）和剪贴板历史一起删 —— 这符合 `--zap` 的语义，但想保住插件就别加 `--zap`。同一类取舍的另一个方向见 `lume-app`：那里刻意没把用户的 VM 镜像列进 `zap`。
 
-**Homebrew 会给 cask 产物打上 quarantine.** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
-
-**`reinplayer` 是 ad-hoc 签名，但签名本身自洽，不算「损坏」类缺陷。** 它是 Flutter 应用（带 FlutterMacOS / media_kit / mpv 等 30+ 框架），`codesign -v` 与 `codesign --verify --deep --strict` 都对全包退 0、`Contents/_CodeSignature` 存在 —— 但它**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那个列表只收「启动前必须重签」的坏签名 cask），因为 LaunchAgent 的判定门是 `codesign --verify --deep --strict`、而 reinplayer 这个门能过，修了也修不到 quarantine。真正的坑有两层：上游 `CFBundleIdentifier` 没改、停留在占位 `com.example.reinPlayer`；且整体 ad-hoc（无 Developer ID、未公证），而 Homebrew 装完会给 `.app` 打上 `com.apple.quarantine`（实测 `/Applications/rein_player.app` 装完确实带着）。quarantine + 无 Developer ID → 首次启动被 Gatekeeper 拦「无法验证的开发者」。Caveats 里给了 `xattr -dr com.apple.quarantine` 清隔离属性（或更省事：右键 → 打开 一次加入用户豁免；需要的话再 `codesign --force --deep --sign -` 重签），不设 `auto_updates`（ad-hoc 自更新不可靠，让 Homebrew 当升级渠道）。
-
-**`nigate` 属于「启动前必须重签」那一族**（micyou / splayer-next / lume-app）：可执行文件是 `flags=0x20002(adhoc,linker-signed)`，签名声明有密封资源，包里却没有 `Contents/_CodeSignature`，`codesign --verify` 直接报 `code has no resources but signature indicates they must be present`。`/Applications/Nigate.app` 已经同时加进 LaunchAgent 的 `WatchPaths` 和脚本的 `DEFAULT_APPS`，`repair.sh` 对它实测有效（重签后 `--verify --deep --strict` 退 0、quarantine 清掉）。另外它的 bundle id 是 `io.hoochanlon.github`（和 reinplayer 那个占位 id 一个味道），Electron 的 profile 目录用 `package.json` 的 `free-ntfs-for-mac`（没有 `productName`）—— 注意**整套 Chromium 状态都在这个目录里**（`Cache` / `Code Cache` / `Cookies` / `Local Storage` / 它自己的 `Preferences` 都在下面），所以 `~/Library/Caches/free-ntfs-for-mac`、`~/Library/Logs/...`、`~/Library/Preferences/io.hoochanlon.github.plist`、savedState 一个都不会生成（两次启动 + 正常退出实测皆无），`zap` 因此只有两条；第二条 `Caches/free-ntfs-for-mac-updater` 是包内 `app-update.yml` 的 `updaterCacheDirName` 声明的，要等更新器真下载东西才出现，与 `ztools` 同理保留。两片 minos 也不同（arm64 `11.0`、x86_64 `10.15`，`LSMinimumSystemVersion` 写 10.15）—— 都低于 Homebrew 自己支持的下限，所以 `depends_on macos: :big_sur` 和 `:catalina` 都会被判 redundant，只能写 `depends_on :macos`。
-
-**`nigate` 的依赖是系统级的，这点和别的 cask 不是一回事。** NTFS 读写不来自它本体，而是 macFUSE + ntfs-3g：它的「一键安装 / 卸载依赖」是在打包进来的 `node-pty` 终端里跑 jsdelivr 上的 `ninja/kunai.sh` / `ninja/ninpo.sh`（`curl | bash`），要管理员权限。两件事要注意 —— 一是 **`ninpo.sh` 会把 macFUSE 从系统里摘掉**，本机那条 SwiftBar + ntfs-3g 的路线还依赖 macFUSE，别顺手点卸载；二是 Apple Silicon 上装 macFUSE 还要进 Recovery 改安全策略。也就是说 cask 只解决「app 本体 + 重签名」，驱动那一层是它自己在跑脚本装。上游也不随包发校验文件，两个架构的 sha 只有各自下载实测这一个来源（Intel 包已确认是 x86_64 thin、同为 1.4.5）。最后：v1.4.5 发布于 2026-01-23，上游 README 让人去 `/tags` 下载，但 `releases/latest` 指的就是它，livecheck 与 autobump 不受影响。
-
-**`rawviewer` 把「沙箱里缓存目录名不等于 bundle id」这条推到了极端：全程只留下两个路径。** 容器 `~/Library/Containers/com.example.rawviewer/` 在启动时创建；从启动 → 打开一张图 → 正常退出一路看着，`Data/Library/Caches/` 里只有 `flutter_engine`，`Data/Library/Preferences/com.example.rawviewer.plist` 真实写入（`shared_preferences` 的 `flutter.*` 键）—— 而 `path_provider` 虽然挂在依赖里，`Caches/<bundle id>` 和 `Application Support/<bundle id>` **一次都没出现**，HTTPStorages / WebKit / saved state 也没有。所以 `zap` 只有两条，比按惯例写的五条少三条 —— 多出来的那三条正是 jhentai 那轮被实测推翻的同一种形状。顺带一条隐私向的观察：plist 里 `flutter.recent_open_items` 存的是**用户照片的真实完整路径**（还有 `NSNavLastRootDirectory`），`--zap` 会把它一起清掉。
-
-上游缺陷与判定：bundle id 停在 Flutter 占位值 `com.example.rawviewer`（和 `reinplayer` 的 `com.example.reinPlayer` 同一类），容器目录与文件关联全挂在它上面，值得去开 issue；签名是 ad-hoc、未公证，但 `Contents/_CodeSignature` 在、`--verify --deep --strict` 退 0 → 属清 quarantine 那一类，**不进** LaunchAgent 列表。`auto_updates` 没设的依据：`lib/core/update_checker.dart` 只 `GET api.github.com/repos/stmtc233/rawviewer/releases/latest`（10 秒超时，fetcher 可注入便于测试），整个文件没有下载 / 安装 / `Process` 调用 —— 连提示模型都算不上，只是告知有新版本。
-
-**`folia` 是「上游根本没打算签名」的典型。** 三个 mac workflow 全设 `CSC_IDENTITY_AUTO_DISCOVERY: false`（连找身份都不找），产物就是 linker-signed ad-hoc + 没有 `Contents/_CodeSignature`，`codesign --verify --deep --strict` 报 `code has no resources but signature indicates they must be present` —— 与 micyou / lume-app 同族，`/Applications/Folia.app` 已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。上游自己有一篇 `docs/desktop/macos-app-damaged.md`，给的三招是右键打开 / 「仍要打开」/ 清 quarantine，但那台机器上 Gatekeeper 是关着的，**「只清隔离属性够不够」在这边复现不了**，所以按本仓口径仍归到必须重签那一类。`zap` 三条是看着进程验过的：`Application Support/Folia` 里是整套 Chromium profile（`Cache` / `Cookies` / `Local Storage` / `IndexedDB` / 自己的 `Preferences`），而 `Caches/Folia`、`Logs/Folia`、`HTTPStorages/<bundle id>`、saved state 从启动到正常退出全没出现；`Caches/folia-major-updater` 是包内 `app-update.yml` 声明的 `updaterCacheDirName`，只有更新器真下载才会出现，照 `ztools` 的先例保留。注意 `--zap` 会把本地音乐库的索引清掉（存的是曲目路径，音乐文件本身不动）。
-
-`auto_updates` 依旧没设，两层理由：`electron/main.cjs` 里 `autoDownload = false`、`autoInstallOnAppQuit = false`、应用内自动更新是 `ENABLE_AUTO_UPDATE_SETTING_KEY` 的 opt-in、`quitAndInstall` 由界面点出来 —— 形态上是 netcatty 那种提示模型；而**真把那个开关打开也不会成功**：Squirrel.Mac 靠签名一致性装更新，ad-hoc 包不满足，所以 Caveats 里直接写「别开应用内更新，升级走 brew」。发布通道这块是本仓第一种「latest 与 prerelease 混排」的形状：稳定版是 `v0.7.7` 这种 semver tag，而 `limo` / `cielo` / `cielo-wip-…` 全是 **prerelease**（nightly / canary，各自带 `beta.yml` / `alpha.yml`），`strategy :github_latest` 只认非 prerelease 的 latest，所以 autobump 不会被 nightly 带走 —— 与「tag 不带版本号」那类问题不同，不用加 `regex`。
-
-**`arcthumb` 是本仓第一个「装上 ≠ 生效」的 cask。** 它是 Quick Look 缩略图扩展（`com.apple.quicklook.thumbnail`），扩展必须被注册并启用才会出现在 Finder 里：上游自己的 `macos/README.md` 就写明 `lsregister` 单独用不够，要 `pluginkit -a <appex>` + `pluginkit -e use -i com.citrussoda.ArcThumb.thumbnail` + `qlmanage -r cache`。这两条**只进 Caveats**，不做成 `postflight` —— 理由就是上面「不要用 install steps 给上游打补丁」那节（沙箱套不上时会把刚解包的 app 删掉）。实测还抓到一个真实坑：**Quick Look 的注册是按路径记的**，这台机器上留有一条指向 `~/Applications/ArcThumb.app` 的 0.11.0 旧注册（`+` = 已启用），于是新装进 `/Applications` 的 0.12.0 看起来完全没作用；只有 `pluginkit -m -v -i <id>` 能看出是谁在供缩略图。查法与 `pluginkit -r` 的解法已写进 Caveats（本次没替机器清旧注册，那是开发者自己的工作副本）。
-
-数据面与校验：扩展是沙箱的，设置**只写一个文件** —— `~/Library/Containers/com.citrussoda.ArcThumb.thumbnail/Data/Library/Application Support/ArcThumb/settings`，上游明确说不用 `UserDefaults`（非沙箱的 helper 写不进沙箱的偏好域），实测 `~/Library/Preferences/com.citrussoda.ArcThumb.plist` 与 `~/Library/Application Support/ArcThumb` 都不存在，所以 `zap` 就容器那一条，和上游 uninstall 里的 `rm -rf` 完全一致。两个架构各做了**三重对照**：上游随包发的 `.sha256` + GitHub asset digest + 本地 `shasum` 全等，且分别挂包核对内层 Mach-O 是 arm64 / x86_64 thin、两片 `minos` 都是 11.0 并与 `LSMinimumSystemVersion` 一致 —— 11.0 恰好等于 Homebrew 自己的支持下限，于是 `depends_on macos: :big_sur` 会被判 redundant、`audit_min_os` 也提前返回，这里就写 `depends_on :macos`。签名是 ad-hoc 但自洽（app 与 appex 的 `--verify --deep --strict` 都退 0），属清 quarantine 那一类，不进 LaunchAgent 列表。`homepage` 暂用仓库地址：产品页 `https://citrussoda.com/en/arcthumb` 从本机 TLS 直接 `SSL_ERROR_SYSCALL`，`brew audit --online` 会因为不可达失败；等接入 Developer ID + 公证（仓库有 `MACOS_SIGN_IDENTITY` 这个开关，没设）之后可以换回去。
-
-**`status-trio` 是本 tap 第一个写 `auto_updates true` 的 cask，判据要跟前面几条对齐清楚。** 前面 netcatty / ztools / clipp 都**没**设，依据是「应用不会绕过 Homebrew 把自己换掉」：它们的 `electron-updater` 都是 `autoDownload = false` + `autoInstallOnAppQuit = false`，走到最后一步是把挂载好的安装窗丢给你、由人拖进 `/Applications`，等同手动安装。Status Trio 不一样，它带的是完整 Sparkle 2（`SUFeedURL` 指向仓库里的 `appcast.xml`、`SUPublicEDKey` 有值、`SUEnableInstallerLauncherService` 开着），用户在更新窗点一下 Install Update 就是**原地替换 bundle**：那时 tap 里的 `version` 还指着旧号，`brew outdated` 会一直报一个已经装不存在的升级。所以判据是同一句 —— **会不会自己换掉 bundle** —— 只是这里的答案是「会」，于是设标记、并在 Caveats 里写清副作用：设了 `auto_updates` 之后 brew 不再提醒升级，应用自己升过一轮后要跑 `brew upgrade --cask status-trio` 把元数据对齐，或者干脆在设置里关掉更新检查。
-
-其余都按老规矩验过：两片 `minos` 都是 15.0、与 `LSMinimumSystemVersion` 一致（`depends_on macos: :sequoia`，`audit_min_os` 不会挑刺）；sha256 三重对照（上游随包发的 `.dmg.sha256` + GitHub asset digest + 本地 `shasum`）；签名 ad-hoc 但自洽（`_CodeSignature` 在、strict verify 退 0）→ 清 quarantine 那一类，不进 LaunchAgent。`zap` 两条是**启动 + 退出之后**才成立的：运行期间 `~/Library/Preferences/` 一个文件都不出现（cfprefsd 攒着），退出才落 `com.lingsmbp.StatusTrio.plist`，里面同时有应用设置和 Sparkle 的 `SUHasLaunchedBefore` —— 也就是说 **Sparkle 的偏好写在应用自己的域里**，我先前按惯例加的 `org.sparkle-project.Sparkle.plist` 是个不存在的猜测，已删。上游文档另外给了两条边界值得记：它不读也不存 Wi-Fi 密码（macOS 没有用已存密码连接的公开 API），也不为「立即充满」写 SMC 或塞特权 helper。
-
-**`pelmet` 是第二个设 `auto_updates true` 的 cask**，判据与 `status-trio` 同一条：`Contents/Frameworks/Sparkle.framework` 在那儿，用户点了 Install 就是**原地换 bundle**，tap 里的 `version` 当场过期（上游把它写得很明白：`SUAllowsAutomaticUpdates = false`、6 小时轮询、"explicit approval before Install and Relaunch"）。
-
-上游自己有 tap（`brew install --cask ismatBabirli/pelmet/pelmet`，仓库里的 `Casks/pelmet.rb` 是 canonical 源、release workflow 每次同步 `version` + `sha256`），所以收我们这份的唯一意义是那几处实测出来的差异：它的 cask **没有 `depends_on arch: :arm64`**，而产物实测只有 arm64 一片（dmg 和 zip 各 `lipo -archs` 一次都一样）→ Intel 用户装得上跑不了；没有 `auto_updates`；没有 `uninstall quit:`（菜单栏应用）；另外它写了 `verified:`，本仓不写（Homebrew 已废弃该参数）。这三条值得回上游一个 issue，发不发你说。
-
-公证这一项按前面那条规矩验：`codesign -dvvv` 有完整三级 `Authority`（Developer ID Application: Ismat Babirli (FBH9JL8MB9) → Certification Authority → Apple Root CA）加 `Notarization Ticket=stapled`，`spctl -a -vvv` 才打出 `source=Notarized Developer ID`。`minos 13.0` 与 `LSMinimumSystemVersion` 一致 → `:ventura`；sha256 三重对照（上游随包发的 `checksums.txt` + GitHub digest + 本地 `shasum`）。`zap` 里只有偏好 plist 是**启动 + 退出**实测落地的（里面同时存着应用设置、Sparkle 首启标记和 `lastAcknowledgedWhatsNewVersion`），其余三条照上游列表保留。
-
-> 一个容易看错的点：上游 README 说「不需要任何特殊权限」，那只针对隐藏 / 显示的主机制（撑宽分隔符把图标推出屏外，同 Hidden Bar / Dozer）。它**可选**的 one-click access 要辅助功能权限，本次首启就在偏好里写下了 `didPromptForAccessibility` / `awaitingOneClickGrant` —— 两句不矛盾，别据此判断它「说话不算数」。
-
-**`mectrics` 是本仓第一个「签名、公证、Sparkle 三样都齐」的 cask，也是 `auto_updates` 那条判据的对照组。** `spctl -a -vvv` 出现 `source=Notarized Developer ID`（`Developer ID Application: Faruk KAMÇICI (G88QSG6V2M)`），所以没有任何修复类 Caveats —— 注意这一行在**本机 Gatekeeper 评估关着时仍然有信息量**：ad-hoc 的 my-window-pip 只给 `origin=`、不给 `source=Notarized Developer ID`。`auto_updates` 的差别这次落到了一个可查的 key 上：mectrics 的 `Info.plist` 里**显式**写 `SUEnableAutomaticChecks = false`（上游 README 也这么说：只有你主动点 Settings → Check for Updates 才会查），所以不设；status-trio 同一个 key 根本不存在，Sparkle 在未指定时按开启处理，所以那份设了 `auto_updates true`。两边都不是「有没有 updater 依赖」的判断。
-
-另外三点实测：产物名不带版本号（v1.6.0 → v1.8.0 一路都叫 `Mectrics.dmg`，版本只在 tag 段，`github_latest` 照常工作，与 `clipp` 同形）；包里带一个**独立的只读 CLI** `Contents/Helpers/mectrics`（universal，`mectrics check` 只报规则不改设置），所以这里给了 `binary`，而上游自己的「Install CLI…」是在 `/usr/local/bin` 建软链 —— Intel 上那正好是 Homebrew 的 bin，两条路只能选一条，已写进 Caveats。`zap` 三条是启动 + 退出实看到的：`Application Support/Mectrics`（两个 JSON 日志）、App Group 容器 `group.com.mectrics.app`（`widget-snapshot.json`）、以及偏好域（Sparkle 的 `SUHasLaunchedBefore` 也在里面）；`Caches/com.mectrics.app`、`HTTPStorages`、saved state 都没出现，所以没列。
-
-**`clamless` 是本仓第一个「真值与 CI 只能选一个」的 cask。** `Info.plist` 的 `LSMinimumSystemVersion` 和上游 README 都写 13.0，但 `vtool -show-build` 对 `ClamlessMenu` 与包内 helper `clamless-display` 都给 `minos 26.0`（SDK 26.5）—— 根因在 `scripts/build.sh`：`clang` / `swiftc` 都没带 `-target`，部署目标跟着 macos-26 的发布 runner 走。dyld 认的是 load command，所以 macOS 13–15 的用户装得上、跑不起。本仓「以二进制为准」那条规矩在这里指向 `:tahoe`，代价是 `brew audit --strict --online` 一定红：`cask/audit.rb` 只读 plist（有 `LSMinimumSystemVersion` 就不去看 Mach-O），拿到 `:ventura` 后与 cask 声明不等就 `add_error`，而这条 `add_error` 前面没有 `tap.audit_exception` 的入口 —— 能让它绿的写法只有照抄那个假值。**两个方向都实测过**：`depends_on macos: :tahoe` 时 `brew audit --strict --online clamless` 退 1、只报这一条（`Artifact defined :ventura as the minimum macOS version but the cask declared a depends_on stanza with a minimum macOS version of :tahoe`）；换成 `:ventura` 后退 0、其余 strict + online 检查一项不少全过 —— 也就是这个 cask 离 CI 绿只差那一个假值。SleepBar（2026-09-21）是同一种形状的冲突，当时选择不发；这次先落真值，min_os 这一条按已知失败对待，上游在 `build.sh` 里补上 `-target` 重新发版之后 `:ventura` 就同时是真值且绿。
-
-其余照旧：签名 ad-hoc 但自洽（`_CodeSignature` 在、`--verify --deep --strict` 退 0、无 `Authority`、`TeamIdentifier=not set`）→ 清 quarantine 那一类，不进 LaunchAgent 列表；产物只有 arm64 一片。`auto_updates` 没设的依据是 updater 实现（`src/menubar/main.swift` 里 `URLSession` GET `api.github.com/repos/TCXM/clamless/releases/latest`，回调只弹「去下载」按钮；bundle 内没有 Sparkle、也没有安装动作）→ 提示模型，升级渠道留给 brew。sha256 两个来源（GitHub asset 的 `digest` + 本地 `shasum` 全等）。上游其实算了校验文件 —— `release.yml:63` 用 `shasum -a 256 -c` 验 `dist/Clamless-$VERSION.dmg.sha256`，可 `release.yml:119` 的 `gh release upload` 只传 dmg（还带 `--clobber`），所以校验文件没进 release，等于少一个来源；`--clobber` 也意味着同 tag 原地重传是可能的，autobump 撞上时别只比版本号。`brew livecheck --cask clamless` 实测 `clamless: 0.1.10 ==> 0.1.10`，`strategy :github_latest` 走通。`zap` 两条**未经启动验证**，是读源码定的：`UserDefaults.standard` → `Preferences/local.clamless.menu.plist`，`DebugLog` 在 `main.swift:149` 无条件建 `Logs/Clamless`；登录项走 `SMAppService.mainApp`（`main.swift:784`）由系统托管，没有 LaunchAgent plist 可删。它是 LSUIElement 菜单栏应用、而且要接着外接屏才有意义，本次没有在本机启动，启停实测留给使用者（跑一次再看 `~/Library/Caches/local.clamless.menu` 有没有冒出来）。
-
-**`opennow` 是第二个「Developer ID + 公证 + hardened runtime 三样齐、装完即用」的原生应用（前面只有 `pelmet`），也是 `auto_updates` 那条判据第三次落在「会不会自己换 bundle」上。** 公证按老规矩两处对：`codesign -dvvv` 给完整三级 `Authority`（`Developer ID Application: MUHAMMED EMIN YILMAZER (VR766AGP7G)` → Certification Authority → Apple Root CA）加 `Notarization Ticket=stapled`、`xcrun stapler validate` 退 0，`spctl -a -vvv` 才打出 `source=Notarized Developer ID`。**上游 README 那句「The macOS app is not notarized」在 nightly 段落里**，v1.0.1 的 `RELEASE-INFO.json` 明写 `"macos": "Developer ID; notarized; stapled"`，bundle 也一致 —— 照 README 写 Caveats 就写错了。`auto_updates` 的依据照旧不是「有没有 updater 依赖」，而是它动不动 bundle：`update_apply/mod.rs:240-254` 在被替换安装的**同级目录**建 `.opennow-update-<128 位随机 hex>` 暂存（macOS 上就是 `/Applications/` 底下），`bundle.rs` 挂 DMG、要求新 bundle 的 `TeamIdentifier` 与已装那个一致，然后原地换掉 → 换过一次 tap 里的 `version` 就过期，所以设标记并在 Caveats 里写清「应用自己升过后跑 `brew upgrade --cask opennow` 对齐」。附带一条本仓第一种形状：**更新中途被打断会在 `/Applications` 留下那个隐藏暂存目录，`brew uninstall --cask` 不会替它收拾**。
-
-版本下限这次**没有** clamless 那种冲突，而且成因值得记：这个 bundle 的 `Info.plist` **压根没有** `LSMinimumSystemVersion` 键，于是审计的 `cask_bundle_min_os` 走 Mach-O 回退分支，`vtool -show-build` 给 `minos 13.0`（SDK 15.5），与上游「macOS 13+」一致 → `depends_on macos: :ventura` 同时是真值和审计推出来的值，`brew audit --strict --online opennow` 实测退 0。这次的绿**做过证伪**：改成 `:tahoe` 后同一命令退 1、仍报 `Artifact defined :ventura ... but the cask declared ... :tahoe` —— 那个 `:ventura` 只可能来自 Mach-O，所以「plist 缺键就回退读二进制」这条不是推的，是拿一次红验出来的。产物只有 arm64 一片（上游原话 "Intel Macs are not included"）；sha256 三重对照（上游随包发的 `SHA256SUMS` + GitHub asset `digest` + 本地 `shasum` 全等，每个 asset 还各带一个 `.manifest.json`，那是它更新器的 ed25519 签名清单，不是校验文件）。`homepage` 用 `https://opennow.zortos.me/`：仓库的 homepage 字段是空的，`opennow.app` 只是 Qt 的 `organizationDomain`（解析不到），而 README 里链的这个站标题就是「OpenNOW — Open-source GeForce NOW client」。
-
-`zap` 只有一条，而且是**故意只有一条**。设置与账号数据全在 Rust 核心那个目录（`opennow-core/src/settings.rs:828-830` → `~/Library/Application Support/OpenNOW`，里面是 `settings.json`）；Qt 侧 `QSettings` 只出现在 `AppController.cpp:399-413` 的 `#ifdef Q_OS_WIN` 分支里，也就是 **macOS 上不写偏好 plist**，别按惯例补 `~/Library/Preferences/io.github.opencloudgaming.OpenNOW.plist` 那条。反过来 `~/Pictures/OpenNOW/{Screenshots,Recordings}` 是它落截图与录屏的地方（`opennow-core/src/media.rs:18-20`），属用户内容，按 `jhentai` / `lume-app` 那条红线**不进 `zap`**，只在 Caveats 里告诉人自己去删。以上路径全是读源码定的，**没做启动验证**（它要 NVIDIA 账号登录、还要有可串的游戏才有意义），所以启停实测与 `Caches` 有没有东西仍欠一次。
-
-**`ferail` 的 `depends_on :macos` 不是偷懒，是被两条规则夹出来的。** 上限那边：`LSMinimumSystemVersion` 与唯一那个 Mach-O（`ferail-gpui`）的 `minos` 都是 **11.0**（`plutil` 与 `vtool` 各读一次，两处独立一致），而 11 正好等于 Homebrew 自己的 `HOMEBREW_MACOS_OLDEST_ALLOWED`；于是写 `:big_sur` 会被 `Homebrew/OSDependsOn` 判「redundant minimum macOS version」让 `brew style` 变红 —— 这条**做了证伪**：把那一行临时换成 `depends_on macos: :big_sur` 后 `brew style` 退 1 并原样报那句，改回 `depends_on :macos` 才干净。与 `arcthumb` 同一个位置（那里是 `minos 11.0` 恰好等于下限）。
-
-顺带记一条**「绿了不代表那条断言跑过」**的实例：`audit_min_os` 开头就是 `return if app_min_os <= HOMEBREW_MACOS_OLDEST_ALLOWED`，11.0 命中提前返回，所以 `brew audit --strict --online ferail` 退 0 里**压根没有**版本下限这一项的功劳 —— ferail 的下限完全靠上面那两处独立读数撑着，别拿 audit 的绿当它验过。同一次运行真正验到的是 `version` / `url` / `sha256` / `homepage` / desc 与 token 格式那几类（以及 `--online` 的产物下载与解包）。
-
-其余：签名按上游自己那张表说的「Developer ID signed **and notarized**」成立 —— `codesign -dvvv` 三级 `Authority`（`Developer ID Application: John Knopper (C43N3NG7Z5)`）+ `Notarization Ticket=stapled` + `flags=0x10000(runtime)`，`xcrun stapler validate` 退 0 → 没有任何修复类 Caveats，也不进 LaunchAgent 列表；entitlements 只有 `com.apple.security.cs.disable-library-validation`，**不是沙箱应用**，所以 `~/Library/...` 直接写、不套 `Containers` 前缀，代价是首次访问 Desktop / Documents / Downloads 会弹 TCC 授权（已写进 Caveats）。产物只有 arm64 一片。**不设 `auto_updates`** 的依据读的是实现文档：macOS 那条路是「把 asset 下载到 `~/Downloads`（`.part` 再改名）→ Open 只是挂载 DMG → 装仍由人来」，且自动检查是 opt-in、新装默认关（`docs/features/UPDATES.md`、`PRIVACY.md:79`），也就是 netcatty / ztools / clipp 那一档提示模型。`zap` 只有一条，依据是 `PRIVACY.md:121` 声明 macOS 只有 `~/Library/Application Support/Ferail` 这一个主目录，且上游明说删它不动你浏览过的文件；顺带一条隐私向提醒：那里面存着 Ant Trail 访问记录、Favorites 与重复哈希缓存，`--zap` 会连带抹掉「访问过哪些路径」这份记录。sha256 只有**两个**来源（GitHub asset `digest` + 本地 `shasum` 全等）—— 这个 release 的 6 个 asset 里没有随包校验文件，只有各平台的包和一个 symbols zip。路径同样是读源码/文档定的，**没做启动验证**。
-
-**`maaend` 的版本下限是这个 tap 里最纠结的一片，三处读数互相打架。** `LSMinimumSystemVersion` 写 `10.13`；两片主二进制彼此就不一致（arm64 是 `LC_BUILD_VERSION minos 11.0`，x86_64 是老的 `LC_VERSION_MIN_MACOSX 10.13`）；把 arm64 那个包里的 Mach-O 逐个 `vtool -show-build` 扫一遍，结果是 **14 片 `minos 13.3`**（11 个 `maafw/libMaa*.dylib` + `maafw/MaaPiCli` + `maafw/plugins/libMaaPluginDemo.dylib` + `agent/cpp-algo`）、4 片 11.0（主二进制自己 + `libfastdeploy_ppocr` / `libonnxruntime.1.19.2` / `libopencv_world4`）、1 片 12.0（`agent/go-service`），另外 5 个 `maafw/MaaAgentBinary/minitouch/*` 是安卓 ELF、mac 上压根不加载（所以真实下限只能从 13.3 那批读，别被它们干扰）。dyld 是按 load command 拒人的，所以真实下限就是 13.3，plist 那句完全是摆设。这里写 `depends_on macos: :ventura`（13.0）而不是 `:sonoma`：`:ventura` 是**不高于真值的最粗符号**，代价是 macOS 13.0–13.2 仍会「装得上、起不来」；写 `:sonoma` 则把 13.3–13.x 整体挡在门外，而那批人走 ADB 控制器并不碰 14 的限制，那是更假的值。另外别把这次的 `brew audit --strict --online maaend` 退 0 当下限被验过 —— `audit_min_os` 只读 plist，拿到 10.13、低于 `HOMEBREW_MACOS_OLDEST_ALLOWED`(11) 就提前 return，**这条检查压根没跑**（与 `ferail` 同形）。还有一条不在任何 plist 里：`libMaaMacOSControlUnit.dylib` 里写死 `macOS 14.0 or later required for ScreenCaptureKit`，也就是**「macOS 窗口」控制器实际要 14+**，13.3 上能起进程但那条路子不通，已写进 `caveats`。
-
-**`maaend` 的数据目录是框架共享的，`zap` 因此只能按文件名挑。** 启动 + 退出实测：所有落点都在 `~/Library/Application Support/MXU/` 底下 —— 不是应用名目录，因为 `get_app_data_dir()`（MistEO/MXU `src-tauri/src/commands/utils.rs`）在 macOS 分支里**硬编码** `Application Support/MXU`，MaaEnd 自己的东西靠**文件名**区分：`config/mxu-MaaEnd.json`（40 KB，实例与任务配置，就是用户的全部设置）与 `cache/config_backup/mxu-MaaEnd-<时间戳>.json`（滚动备份）。同目录里另外那些**都不进 `zap`**：`config/maa_option.json` 是 MaaFramework 的全局运行项、`cache/etag-index.json` 是通用抓取缓存、`debug/*.log` 是日志、`~/Library/Caches/com.misteo.mxu` 用的是 **MXU 的 bundle id 而不是 `com.maaend.app`** —— 任何别的 MXU 系应用都会跟它们同写一处，`--zap` 顺手清就是把别人的一起抹了。没有偏好 plist、没有 saved state、没有 HTTPStorages（退出之后逐项看过），bundle 自身也**一个字都没写**。这次只跑了一轮启停、没真跑过任务，跑任务会往 `debug/` 里落识别图与日志，那条路径不在 `zap` 里、想彻底清就按 `caveats` 的说法自己删。
-
-**`maaend` 设了 `auto_updates true`，判据仍是「会不会自己换 bundle」，读的是实现。** MXU 前端 `src/components/InstallConfirmModal.tsx` 把 `targetDir: basePath` 传给 `installUpdate()`，而 `basePath` 就是 `get_exe_dir()`（`interfaceLoader.ts`，macOS 上 = `/Applications/MaaEnd.app/Contents/MacOS`）；`apply_full_update()` 随后把更新包内容**原地覆盖进那个目录**，被替换的旧条目挪进 `Contents/MacOS/cache/old`。所以应用自己升过一轮之后 tap 里的 `version` 当场过期，`caveats` 里写了「要么别用应用内更新，要么补一次 `brew upgrade --cask maaend` 对齐」。**注意这条是读实现定的，没有真跑过一次更新**（更新要 MirrorChyan 或 GitHub 下载几百 MB 的包）。
-
-其余核对：产物名与 tag 都带版本号（`MaaEnd-macos-<arch>-v<ver>.dmg`，v2.28 / v2.29 / v2.30 三代命名一致），两个架构的 sha256 **两源全等**（GitHub asset 的 `digest` + 本地 `shasum`，这个 release 不随包发校验文件）；`brew livecheck --cask maaend` 双向验过 —— 版本号正确时报 `2.30.1 ==> 2.30.1`，把 `version` 临时改成 `2.30.0` 时报 `2.30.0 ==> 2.30.1`。`homepage` 用 `https://maaend.com/`：这个域名**直连 DNS 会超时、走代理 200**，所以第一次 `brew audit --online` 以 `curl (18) Transferred a partial file` 失败，带代理重跑才退 0（与 `arcthumb` 那次「产品页不可达就退回仓库地址」不同，这里网站是活的，别改回仓库地址）。
+**Homebrew 会给 cask 产物打上 quarantine。** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
-
