@@ -27,25 +27,25 @@ cask "hibernal" do
   # install. Verified against the released bundle: the app writes its settings
   # to the com.hibernal.settings domain, and its log/support paths are the
   # Hibernal directories below.
-  zap trash: [
-    "~/Library/Application Support/Hibernal",
-    "~/Library/Logs/Hibernal",
-    "~/Library/LaunchAgents/com.hibernal.agent.plist",
-    "~/Library/Preferences/com.hibernal.app.plist",
-    "~/Library/Preferences/com.hibernal.settings.plist",
-  ],
-  script: {
-    executable: "/bin/sh",
-    args: [
-      "-c",
-      <<~SH,
-        launchctl bootout system/com.hibernal.helper 2>/dev/null || true
-        rm -f /Library/LaunchDaemons/com.hibernal.helper.plist
-        rm -f /Library/PrivilegedHelperTools/com.hibernal.helper
-      SH
-    ],
-    sudo: true,
-  }
+  zap script: {
+        executable: "/bin/sh",
+        args:       [
+          "-c",
+          <<~SH,
+            launchctl bootout system/com.hibernal.helper 2>/dev/null || true
+            rm -f /Library/LaunchDaemons/com.hibernal.helper.plist
+            rm -f /Library/PrivilegedHelperTools/com.hibernal.helper
+          SH
+        ],
+        sudo:       true,
+      },
+      trash:  [
+        "~/Library/Application Support/Hibernal",
+        "~/Library/LaunchAgents/com.hibernal.agent.plist",
+        "~/Library/Logs/Hibernal",
+        "~/Library/Preferences/com.hibernal.app.plist",
+        "~/Library/Preferences/com.hibernal.settings.plist",
+      ]
 
   caveats do
     <<~EOS
