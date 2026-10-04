@@ -1,6 +1,6 @@
 cask "opennow" do
-  version "1.0.1"
-  sha256 "8afb1ab9f20240993b289cc9195e9a4c2e67bea7be5c24b76f233da37b1b08c7"
+  version "1.0.2"
+  sha256 "764286a09522323a6efbd72ae64b1d7637178ae6fb03b5e944983f894315827c"
 
   url "https://github.com/OpenCloudGaming/OpenNOW/releases/download/v#{version}/OpenNOW-Qt-#{version}-Darwin-arm64.dmg"
   name "OpenNOW"
