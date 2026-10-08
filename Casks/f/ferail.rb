@@ -1,6 +1,6 @@
 cask "ferail" do
-  version "0.7.8"
-  sha256 "f9b14a7cbde3ac092ffe7cbb4445da6d5c7b261a2461b13f9d5a19c4b1905669"
+  version "0.7.9"
+  sha256 "4ccfbae1d4530a07bc48db3831ff1c1cb40d9fa3a1e1bc178468128774c8ccf4"
 
   url "https://github.com/jonx/Ferail/releases/download/v#{version}/Ferail-#{version}.dmg"
   name "Ferail"
