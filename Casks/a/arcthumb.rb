@@ -1,9 +1,9 @@
 cask "arcthumb" do
   arch arm: "arm64", intel: "x86_64"
 
-  version "0.12.0"
-  sha256 arm:   "454b1625abd9df21f4be4bbf5b103814abc0514d9b72511c659a31375fc9f1b1",
-         intel: "4948018c9d8382aff97cc15c138dc6c81dfc616f9ebec05e06e32d1c34c6320f"
+  version "0.13.0"
+  sha256 arm:   "5c66f428ca702d5d77dd54ba28bad8e2e74b2321120617676689d87f37f7a854",
+         intel: "16c34ad30368d92907b93c495b3d60e9aec2a7e459a5311bc337c14a39a6ff4b"
 
   url "https://github.com/HibernalGlow/ArcThumbX/releases/download/v#{version}/ArcThumb-#{version}-macOS-#{arch}.zip"
   name "ArcThumb"
