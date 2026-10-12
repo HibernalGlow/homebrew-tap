@@ -96,6 +96,7 @@ brew uninstall --cask --zap splayer-next
 | [`maaend`](#maaend) | 2.30.1 | **A** | arm64 / intel 双包 · `:ventura` | [MaaEnd/MaaEnd](https://github.com/MaaEnd/MaaEnd) | 「明日方舟：终末地」视觉 AI 自动化助手（Tauri + MaaFramework）。**上游产物连自己的资源封套都对不上**（模板图文件名 NFC / NFD 不一致）；数据落在框架共享的 `Application Support/MXU/`，`zap` 只能按文件名挑 |
 | [`mectrics`](#mectrics) | 1.8.0 | **C** | universal · `:sequoia` | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），带一个独立的只读 CLI。本仓第一个「签名、公证、Sparkle 三样都齐」的 cask |
 | [`menu-bar-dock`](#menu-bar-dock) | 4.7.9 | **—** | 单包 · `:macos` | [EthanSK/Menu-Bar-Dock](https://github.com/EthanSK/Menu-Bar-Dock) | 菜单栏版 Dock。带完整 Sparkle 2 且自动检查开着 → 设了 `auto_updates`。签名尚未逐项复核 |
+| [`menumate`](#menumate) | 0.3.0-beta.1 | **B** | universal · `:ventura` | [Hibrielle/menumate](https://github.com/Hibrielle/menumate) | 右键菜单动作管理（SwiftUI + Finder Sync，EN / 简中），动作就是可编辑的 zsh 脚本。本仓第一个**只有 prerelease** 的上游（`/releases/latest` 直接 404），靠 tap 根的 `audit_exceptions/` 放行；**光装不生效**，还要注册并启用 Finder 扩展 |
 | [`micyou`](#micyou) | 2.0.3 | **A** | 仅 arm64 · `:macos` | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），另带 `micyou-cli` / `micyou-tui`；还需要一个虚拟音频设备 |
 | [`my-window-pip`](#my-window-pip) | 0.1.7 | **B** | universal · `:sonoma` | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，CPU 近零），必需「屏幕录制」权限。自签证书、未经 Apple 公证 |
 | [`netcatty`](#netcatty) | 1.1.83 | **C** | arm64 / intel 双包 · `:monterey` | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh。签名与公证正常，装完即用 |
@@ -130,7 +131,7 @@ brew uninstall --cask --zap splayer-next
 | 处置 | 判据 | 要做什么 | 收录 |
 | :-: | --- | --- | --- |
 | **A** | `codesign --verify --deep --strict` **退非 0** | **启动前**重签名 + 清 quarantine，见[已知上游问题](#签名不一致时要先重签名) | `micyou` `splayer-next` `lume-app` `nigate` `folia` `maaend` |
-| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` |
+| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` |
 | **C** | 上一条退 0，且出现 `source=Notarized Developer ID` | 什么都不用做 | `netcatty` `ztools` `clipp` `pelmet` `mectrics` `opennow` `ferail` |
 | — | 尚未按这两个命令复核 | 见该 cask 那条注意事项 | `menu-bar-dock` |
 
@@ -143,6 +144,8 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 
 ```
 .
+├── audit_exceptions/
+│   └── github_prerelease_allowlist.json   # 按 token 放行 prerelease，见[下文](#无法自动检测时的维护方案)
 ├── Casks/
 │   ├── a/
 │   │   └── arcthumb.rb
@@ -164,6 +167,7 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 │   │   ├── maaend.rb
 │   │   ├── mectrics.rb
 │   │   ├── menu-bar-dock.rb
+│   │   ├── menumate.rb
 │   │   ├── micyou.rb
 │   │   └── my-window-pip.rb
 │   ├── n/
@@ -323,7 +327,7 @@ brew install --cask hibernalglow/tap/splayer-next             # 真装
 ```
 
 > [!WARNING]
-> 三条实测过的坑。一是 `brew audit <文件路径>` 被直接禁掉（`Error: Calling brew audit [path ...] is disabled! Use brew audit [name ...] instead.`），只能给 cask 名 —— 所以「裸路径就能跑 audit」是不成立的，文件得先落到 tap 克隆里。二是 `brew audit --tap=hibernalglow/tap <name>` 带着 `--tap` 时会**把整个 tap 都审一遍**（实测为了验一个 cask 去下了 `folia` 的 172 MB 包），只想验一个就别加 `--tap`。三是 `brew audit … | tail -6` 之后的 `$?` 是 `tail` 的退出码，得重定向到日志文件或靠 `PIPESTATUS` 才拿得到 brew 的真实结果 —— 「拿管道后的退出码证明一条断言绿了」这种错法实测会骗人（本机 `api.github.com` 还会偶发 `curl (35) SSL_ERROR_SYSCALL`，报成 `exception while auditing`，加 `https_proxy` 重跑就好）。
+> 四条实测过的坑。一是 `brew audit <文件路径>` 被直接禁掉（`Error: Calling brew audit [path ...] is disabled! Use brew audit [name ...] instead.`），只能给 cask 名 —— 所以「裸路径就能跑 audit」是不成立的，文件得先落到 tap 克隆里。二是 `brew audit --tap=hibernalglow/tap <name>` 带着 `--tap` 时会**把整个 tap 都审一遍**（实测为了验一个 cask 去下了 `folia` 的 172 MB 包），只想验一个就别加 `--tap`。三是 `brew audit … | tail -6` 之后的 `$?` 是 `tail` 的退出码，得重定向到日志文件或靠 `PIPESTATUS` 才拿得到 brew 的真实结果 —— 「拿管道后的退出码证明一条断言绿了」这种错法实测会骗人（本机 `api.github.com` 还会偶发 `curl (35) SSL_ERROR_SYSCALL`，报成 `exception while auditing`，加 `https_proxy` 重跑就好）。四是 `brew uninstall --cask --zap` 收尾时 Homebrew 会顺手做一次 autoremove，把**早已孤立的 formula 依赖**一起删掉（验 `menumate` 那次扫走了 `llvm@21` / `lld@21`，1.6 GB）—— 这一步与被验的 cask 无关，跑之前先 `brew leaves` / `brew uses --installed` 看一眼会牵连谁。
 
 **大产物反复下不完时，可以直接喂 Homebrew 的下载缓存**（`folia` 的 172 MB 包今天被 GitHub 掐断三次：`curl` 报 exit 18，`brew install` 两次 `Download failed`）。文件名规则是 `$(brew --cache)/downloads/<sha256(URL)>--<产物名>` —— 注意是 **`downloads/` 子目录**，放 cache 根目录 Homebrew 不认（会当没缓存、继续重下）：
 
@@ -430,6 +434,16 @@ end
 ```
 
 改完要两头验：`brew livecheck --cask <name>` 在版本号正确时报等值（`8.0.16+334 ==> 8.0.16+334`），把 `version` 临时改成上一个发布（`8.0.15+333`）时要报出升级（`==> 8.0.16+334`）—— 只验前者不够，等值可能只是「两边都被截断成同一个数」。`Version` 认 `+` 为修订号，所以 `8.0.16+333 < 8.0.16+334` 的比较是对的。
+
+### 上游只有 prerelease 时
+
+这族要同时过两道，光换 strategy 不够。
+
+**第一道是 livecheck。** 上游那个 release 被 GitHub 标成 prerelease，`/releases/latest` 就**不返回它**（`menumate` 实测：`gh api repos/Hibrielle/menumate/releases/latest` → 404，而 `/releases` 有 1 条），`strategy :github_latest` 读不到东西。而 `strategy :github_releases` 的**默认** block 里写着 `next if release["draft"] || release["prerelease"]`（`Library/Homebrew/livecheck/strategy/github_releases.rb`），所以照 `splayer-next` 那种「换成 `:github_releases` 就行」的写法照样拿不到版本 —— 必须自己给 block 把 `tag_name` 取回来，只排 `draft`。
+
+**第二道是 audit，而且和 livecheck 无关。** 版本一旦取成 prerelease，`brew audit --strict` 另报一条政策错：`v0.3.0-beta.1 is a GitHub pre-release.`。它有官方出口：tap 根目录放 `audit_exceptions/github_prerelease_allowlist.json`，内容 `{"menumate": "any"}`（`Tap#audit_exception` 读 `<tap>/audit_exceptions/*.json`，去掉 `.json` 的文件名就是 list 名）。**值要写 `"any"`，别写版本号**：放行判据是 `[version, "all", "any"].exclude?(exception)`（`cask/audit.rb`），写版本号眼下能对，但上游发稳定版之后会撞另一条 `is not a GitHub pre-release but '…' is in the GitHub prerelease allowlist.` —— 等于替 autobump 埋一次必红。这一对方向都实测过：文件在的时候 `brew audit --strict --online --cask hibernalglow/tap/menumate` 退 0，把文件挪走退 1、且只报 prerelease 这一条。
+
+保留 prerelease 不会把 tap 永久钉死在 beta 上：`Version` 的比较里 `NullToken#<=>` 对 `BetaToken` 返回 `1`（`Library/Homebrew/version.rb`），也就是 `0.3.0` **大于** `0.3.0-beta.1`，上游一发稳定版 livecheck 自己就把 beta 压下去，cask 与 allowlist 都不用再动。
 
 ## 已知上游问题
 
@@ -613,6 +627,16 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 版本下限这次没有 `clamless` 那种冲突，但形状值得记：主可执行文件 `minos 10.15`、`LSMinimumSystemVersion` 一致，而包内那个登录项 `Launcher.app` 是 `minos 10.14`、Sparkle 的 helper 10.13、附带的 Swift dylibs 10.9 —— 以主可执行文件为准，真实下限 10.15。它低于 `HOMEBREW_MACOS_OLDEST_ALLOWED`，所以声明写成 `depends_on :macos`（写版本号等于写一条 Homebrew 拦不住的约束）。`brew audit` 在这里看不见任何细节：`audit_min_os` 读 plist 拿到 10.15，低于下限就提前 return。
 
 两条使用提醒：首次启动会注册那个登录项（「Launch at login」默认开着），上游 README 也建议把 Dock 设成自动隐藏。`zap` 只有两条（`~/Library/Logs/Menu Bar Dock` 与偏好 plist），依据是读源码 —— 沙箱 entitlements 被上游关掉了（右键菜单要能退掉别的应用），所以偏好落在普通的 `~/Library/Preferences/<bundle-id>.plist`，Sparkle 的记账也在同一个域里，没有任何东西写 Application Support / Caches / HTTPStorages。**这一条同样没做启停实测**，路径是按源码定的。
+
+#### menumate
+
+本仓第一个「上游只发 prerelease」的 cask，两道闸门的处理见[上面那一节](#上游只有-prerelease-时)。livecheck 那个 block 两头都验过：`version` 正确时报 `menumate: 0.3.0-beta.1 ==> 0.3.0-beta.1`，临时改成 `0.2.9` 时报 `0.2.9 ==> 0.3.0-beta.1` —— 也就是 block 真的把 prerelease tag 取回来了，不是两边都被截成同一个数。校验值**三源全等**：上游随包发的 `SHA256SUMS.txt` + GitHub asset 的 `digest` + 本地 `shasum -a 256`（本仓第一个三样都齐的）。`depends_on macos: :ventura` 这次没有 `clamless` 那种冲突：主可执行文件与包内扩展的 `LC_BUILD_VERSION` 在 arm64 / x86_64 两片上 `minos` 都是 13.0，与两个 `LSMinimumSystemVersion` 一致。
+
+`auto_updates` **没设**，依据是「装了更新器但三处都断链」：包里有 `Sparkle.framework`，可 `SUEnableAutomaticChecks` 是 `false`、`SUPublicEDKey` 还是字面量占位 `REPLACE_WITH_YOUR_SPARKLE_PUBLIC_KEY`、`SUFeedURL` 指的那个 `appcast.xml` 实测 404，上游 `BUILD-INFO.txt` 自己也写 `automatic updates: disabled`。这和 mectrics 那种「框架齐、只是把自动检查交给用户」不是一回事 —— 这里真跑不起来，所以升级渠道只有 brew。签名是 ad-hoc 且**自洽**：`codesign --verify --deep --strict` 对装到 `/Applications` 的那份退 0（不只是对 DMG 里的），`Signature=adhoc`、无 `Authority`、`TeamIdentifier=not set`，而 `brew install` 给它打上了 `com.apple.quarantine` → 处置 B，Caveats 只给清隔离那一行，不重签名。
+
+`zap` 两条是启动 + 退出实测的，但过程里纠正了一条本仓旧做法：**假 HOME 对 Swift / Foundation 应用无效**。先按 `maaend` 那次的办法用 `HOME=/tmp/mmprobe /Applications/MenuMate.app/Contents/MacOS/MenuMate` 起，45 秒后 `/tmp/mmprobe` 里一个文件都没有 —— 不是「这个应用不落盘」，而是 `FileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)` 走 `getpwuid` 拿真实家目录、**不吃 `$HOME`**（Tauri / Rust 侧读 `std::env::var("HOME")` 才吃）。结果那次运行写进了真的 `~/Library`。落点因此按真 Home 清点：`Application Support/MenuMate/`（`config.json`、`.storage.lock`、`Scripts/` 含 `.shipped.json` 与 6 个预置动作、`Templates/` 两个模板、空的 `Data/`）与 `Preferences/com.menumate.app.plist`（只有 `MMSeededPresetKeys` 一个 key）；`Caches`、`HTTPStorages`、saved state、`Logs` 两次跑（SIGTERM 一次、`open` + AppleScript `quit` 一次，后者路径数 17 → 17 无新增）都没出现，所以不列。`~/Library/Preferences/pbs.plist` 跑了前后 **sha256 与 mtime 全等** —— 单纯启动不碰系统服务库，只有「打开方式 / 快速操作」那两个面板会写，这条阴性对照成立才敢在 Caveats 里那么说。`Containers/com.menumate.app.FinderExtension` 是唯一**没观测到**却列进去的：扩展是包内唯一带 `com.apple.security.app-sandbox` 的那半，容器在它首次加载时才建，而启用扩展是系统设置里的手动步骤、这次没做；它零文件访问（图标字节随菜单快照 base64 传过去），所以那个容器只可能有系统自建的缓存。
+
+`Application Support/MenuMate` **整体排除在 `zap` 之外**：`Scripts/` 里的预置动作就是设计上给用户就地编辑的 zsh 脚本，`Data/` 存脚本自己持久化的状态（`cut.sh` 的剪切缓冲），`Packs/` 是导入的社区扩展包，`config.json` 是菜单本身，`pbs.plist.backup` 还是用户系统服务库的还原副本 —— 按「只列应用自己产生的可再生数据」这条，一个都不该由 `--zap` 代删，删除命令改写在 Caveats 里交给用户。顺带记一个本机层面的副作用：`brew uninstall --cask --zap` 结束时 Homebrew 自动做了 autoremove，扫掉了两个早已孤立的 formula 依赖（`llvm@21` / `lld@21`，1.6 GB）；`brew uses --installed` 复核确认没有任何已装包依赖它们、`llvm` 与 `llvm@22` 都在，但在这台机器上跑 cask 的装 / 卸循环之前先想清楚这一步会动别的包。
 
 #### micyou
 
