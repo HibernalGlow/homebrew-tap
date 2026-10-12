@@ -88,6 +88,7 @@ brew uninstall --cask --zap splayer-next
 | [`clamless`](#clamless) | 0.1.10 | **B** | 仅 arm64 · `:tahoe` | [TCXM/clamless](https://github.com/TCXM/clamless) | 不盖 lid 就断开 MacBook 内置屏（菜单栏原生 Swift），走 SkyLight / IOMobileFramebuffer 私有 API。上游声明 13+，产物实测 `minos 26.0` —— 这份按真值写，代价是 `brew audit` 的 min_os 那条必然红 |
 | [`clipp`](#clipp) | 1.5.0.160 | **C** | 仅 arm64 · `:sonoma` | [martona/clipp](https://github.com/martona/clipp) | 局域网 P2P 剪贴板同步（文本 / 图片），同一个二进制兼作 `clipp copy` / `paste` CLI。上游自己有 tap（`martona/tap`），本 tap 这份补了 `quit` 和寄存器快照的 `zap` 路径 |
 | [`ferail`](#ferail) | 0.7.8 | **C** | 仅 arm64 · `:macos` | [jonx/Ferail](https://github.com/jonx/Ferail) | Rust + GPUI 写的原生文件管理器（面向重度用户）。Developer ID + 公证 + hardened runtime 齐；更新器只把 DMG 下到 `~/Downloads`、从不换 bundle → **不设** `auto_updates` |
+| [`flut-renamer`](#flut-renamer) | 1.6.3 | **B** | universal · `:monterey` | [sun-jiao/flut-renamer](https://github.com/sun-jiao/flut-renamer) | 批量重命名文件 / 目录（Flutter），把查找替换、插入元数据 / Exif、重排等操作串成规则链，一份 universal DMG 管两个架构。**规则链只存在 `$TMPDIR/temp_rules.yaml`**，macOS 清临时目录就没了；上游在 prerelease 附件里发过自己写的 cask，那份的 `depends_on macos:` 与产物实测不符 |
 | [`folia`](#folia) | 0.7.8 | **A** | arm64 / intel 双包 · `:monterey` | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron）。**应用内那个「自动更新」别开** |
 | [`hibernal`](#hibernal) | 2.0.0 | **B** | universal · `:ventura` | [HibernalGlow/hibernal](https://github.com/HibernalGlow/hibernal) | 从菜单栏或全局快捷键一键触发深度休眠。首次休眠要一次管理员密码装 root helper；`--zap` 会连那个 helper 一起清 |
 | [`jhentai`](#jhentai) | 8.0.16+334 | **B** | universal · `:macos` | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），下载与本地书库齐全。**上游标明 macOS 构建「无维护」**；沙箱应用，`zap` 只清可再生部分 |
@@ -132,7 +133,7 @@ brew uninstall --cask --zap splayer-next
 | 处置 | 判据 | 要做什么 | 收录 |
 | :-: | --- | --- | --- |
 | **A** | `codesign --verify --deep --strict` **退非 0** | **启动前**重签名 + 清 quarantine，见[已知上游问题](#签名不一致时要先重签名) | `micyou` `splayer-next` `lume-app` `nigate` `folia` `maaend` |
-| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` `neriplayer` |
+| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` `neriplayer` `flut-renamer` |
 | **C** | 上一条退 0，且出现 `source=Notarized Developer ID` | 什么都不用做 | `netcatty` `ztools` `clipp` `pelmet` `mectrics` `opennow` `ferail` |
 | — | 尚未按这两个命令复核 | 见该 cask 那条注意事项 | `menu-bar-dock` |
 
@@ -155,6 +156,7 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 │   │   └── clipp.rb
 │   ├── f/
 │   │   ├── ferail.rb
+│   │   ├── flut-renamer.rb
 │   │   ├── folia.rb
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
 │   ├── h/
@@ -569,6 +571,16 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 
 其余：签名按上游自己那张表说的「Developer ID signed **and notarized**」成立 —— `codesign -dvvv` 三级 `Authority`（`Developer ID Application: John Knopper (C43N3NG7Z5)`）+ `Notarization Ticket=stapled` + `flags=0x10000(runtime)`，`xcrun stapler validate` 退 0 → 没有任何修复类 Caveats，也不进 LaunchAgent 列表；entitlements 只有 `com.apple.security.cs.disable-library-validation`，**不是沙箱应用**，所以 `~/Library/...` 直接写、不套 `Containers` 前缀，代价是首次访问 Desktop / Documents / Downloads 会弹 TCC 授权（已写进 Caveats）。产物只有 arm64 一片。**不设 `auto_updates`** 的依据读的是实现文档：macOS 那条路是「把 asset 下载到 `~/Downloads`（`.part` 再改名）→ Open 只是挂载 DMG → 装仍由人来」，且自动检查是 opt-in、新装默认关（`docs/features/UPDATES.md`、`PRIVACY.md:79`），也就是 netcatty / ztools / clipp 那一档提示模型。`zap` 只有一条，依据是 `PRIVACY.md:121` 声明 macOS 只有 `~/Library/Application Support/Ferail` 这一个主目录，且上游明说删它不动你浏览过的文件；顺带一条隐私向提醒：那里面存着 Ant Trail 访问记录、Favorites 与重复哈希缓存，`--zap` 会连带抹掉「访问过哪些路径」这份记录。sha256 只有**两个**来源（GitHub asset `digest` + 本地 `shasum` 全等）—— 这个 release 的 6 个 asset 里没有随包校验文件，只有各平台的包和一个 symbols zip。路径同样是读源码/文档定的，**没做启动验证**。
 
+#### flut-renamer
+
+稳定通道这次是干净的：`/releases/latest` 返回 `v1.6.3`（非 prerelease），而比它晚四天发的 `v1.6.3-test4` 是 prerelease、`strategy :github_latest` 不会取 —— 也就是 folia 那种「stable 与 prerelease 混排」的写法直接成立，不用像 menumate 那样自己写 block 去够 tag。livecheck 两个方向都验过：`flut-renamer: 1.6.3 ==> 1.6.3`，临时把 `version` 改成 `1.6.2` 时报 `1.6.2 ==> 1.6.3`。产物名恒为 `flut-renamer.dmg`（单包 universal，没有分架构变体；1.6.2 与 1.6.3 同名、22.8 → 23.4 MB），版本只活在 tag 里，URL 因此是 `download/v#{version}/…`；旧 tag 有不带 `v` 的（`1.5.4`），1.5.x 之后统一带。sha256 **两源全等**（GitHub asset `digest` + 本地 `shasum`）—— 稳定版不带校验文件，`SHA256SUMS` 只出现在 prerelease 的附件里，所以这里比 menumate 少一个来源，别照抄「三源」说法。
+
+口径与上游随包的那份 cask 骨架不符，两处都按产物实测改：一是下限，上游写 `depends_on macos: ">= :catalina"`（还是已被弃用的字符串比较形式，`brew audit` 对别的 tap 会另报 deprecation），而 `LSMinimumSystemVersion` 是 12.0、`vtool -show-build` 对 universal 两片都给 `minos 12.0`。12.0 高于 `HOMEBREW_MACOS_OLDEST_ALLOWED`（11），所以这条 `audit_min_os` **真的会跑**（不像 ferail / neriplayer 那样提前 return），`:monterey` 是必需写法；上游也没写 `uninstall quit:` 与任何 `zap`，这里补齐。二是签名：`Signature=adhoc`、无 `Authority`、`TeamIdentifier=not set`，但 `codesign --verify --deep --strict` 对装好的那份退 0（不是「已损坏」）、`xcrun stapler validate` 找不到票 → 处置 B，Caveats 只给清 quarantine。`flags=0x2(adhoc)` 没有 hardened runtime 位（对照 neriplayer 的 `0x10002`）。entitlements 实测是 `app-sandbox=false` + `get-task-allow=true`：上游仓库的 `macos/Runner/Release.entitlements` 里只有前一条，产物多出来的 `get-task-allow` 让这个包对任何以你身份运行的进程都是可调试的 —— 这条写进了 Caveats（不对上游动手，只如实标注）。
+
+`zap` 两条的依据是读源码 + 启动实测，形状与 menumate / neriplayer 那种「跑一次就落盘」不同：这次**两次启动都没落任何文件**。先用 `HOME` 与 `TMPDIR` 都指到假目录直接起二进制（Flutter 打出 Impeller 日志、进程活着），假 HOME 与真实家目录两处零新增；再用 `open` 起、AppleScript 退一次，仍然没有 `Preferences/net.sunjiao.renamer.plist`、没有 `Caches/net.sunjiao.renamer`、没有 saved state（`Info.plist` 里也没有 `NSQuitAlwaysKeepsWindows`）。所以这两条是**插件与源码规定的落点、不是启动即出现**：偏好走 `shared_preferences`（非沙箱 → 普通 `Preferences/<bundle id>.plist`），rename 日志走 `getApplicationCacheDirectory()`（`logs/renamer_log.txt` + 两个滚动档，1 MB 触发），都要改过设置 / 发生过一次重命名才会真的建出来。规则链则走 `getTemporaryDirectory()`，即 `$TMPDIR/temp_rules.yaml` —— 不进家目录、也就不进 `zap`，只能写进 Caveats 提醒用户自己导出备份。`auto_updates` 不适用：包内 Frameworks 只有 `App` / `FlutterMacOS` / `objective_c`，没有 Sparkle、也没有别的 updater。
+
+门都过了：`ruby -c`、`brew style`（全 tap 31 文件 0 offense）、`brew audit --strict --online --cask` 退 0、`brew livecheck` 等值 + 证伪，最后真实 `install` → `uninstall --cask --zap` → `reinstall`，zap 恰好清掉声明的那两条、没有多余（`uninstall` 特意带 `HOMEBREW_NO_AUTOREMOVE=1`，避开 menumate 记的那次 autoremove 误伤）。这条 cask 还顺手抓到[通用规则](#通用规则)里那条「uninstall 用安装时留存的定义」的实例：第一次安装时 zap 里多一条 saved state，改完文件再 `uninstall --zap`，它照样按**旧**列表执行 —— 想验新列表必须先重装。
+
 #### folia
 
 是「上游根本没打算签名」的典型。三个 mac workflow 全设 `CSC_IDENTITY_AUTO_DISCOVERY: false`（连找身份都不找），产物就是 linker-signed ad-hoc + 没有 `Contents/_CodeSignature`，`codesign --verify --deep --strict` 报 `code has no resources but signature indicates they must be present` —— 与 micyou / lume-app 同族，`/Applications/Folia.app` 已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。上游自己有一篇 `docs/desktop/macos-app-damaged.md`，给的三招是右键打开 / 「仍要打开」/ 清 quarantine，但那台机器上 Gatekeeper 是关着的，**「只清隔离属性够不够」在这边复现不了**，所以按本仓口径仍归到必须重签那一类。`zap` 三条是看着进程验过的：`Application Support/Folia` 里是整套 Chromium profile（`Cache` / `Cookies` / `Local Storage` / `IndexedDB` / 自己的 `Preferences`），而 `Caches/Folia`、`Logs/Folia`、`HTTPStorages/<bundle id>`、saved state 从启动到正常退出全没出现；`Caches/folia-major-updater` 是包内 `app-update.yml` 声明的 `updaterCacheDirName`，只有更新器真下载才会出现，照 `ztools` 的先例保留。注意 `--zap` 会把本地音乐库的索引清掉（存的是曲目路径，音乐文件本身不动）。
@@ -745,4 +757,4 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 
 **Homebrew 会给 cask 产物打上 quarantine。** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
 
-**`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` 读的是 `Caskroom/<name>/.metadata/<version>/<时间戳>/` 里那份 cask 定义的副本，不是 tap 里的当前文件。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
+**`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` **不看 tap 里的当前文件**：优先用安装时留下来的那份定义，落点有两种形态 —— 多数 cask 会在 `Caskroom/<name>/.metadata/<version>/<时间戳>/Casks/<name>.rb` 留一份副本（如 `ab-download-manager`），而 `flut-renamer` 那份没有副本、只有 `INSTALL_RECEIPT.json` 里的 `uninstall_artifacts` 快照（`cask/cask_loader.rb` 的注释写着 "Prefer exact receipt artifacts"）。实例（`flut-renamer` 实测两次）：装的时候 zap 里还有第三条 saved state，改完文件删掉它再 `uninstall --zap`，它照样清了那三条；重装之后同一命令才变成两条。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
