@@ -99,6 +99,7 @@ brew uninstall --cask --zap splayer-next
 | [`menumate`](#menumate) | 0.3.0-beta.1 | **B** | universal · `:ventura` | [Hibrielle/menumate](https://github.com/Hibrielle/menumate) | 右键菜单动作管理（SwiftUI + Finder Sync，EN / 简中），动作就是可编辑的 zsh 脚本。本仓第一个**只有 prerelease** 的上游（`/releases/latest` 直接 404），靠 tap 根的 `audit_exceptions/` 放行；**光装不生效**，还要注册并启用 Finder 扩展 |
 | [`micyou`](#micyou) | 2.0.3 | **A** | 仅 arm64 · `:macos` | [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) | 把安卓设备变成电脑麦克风（Tauri 2），另带 `micyou-cli` / `micyou-tui`；还需要一个虚拟音频设备 |
 | [`my-window-pip`](#my-window-pip) | 0.1.7 | **B** | universal · `:sonoma` | [ljzxzxl/my-window-pip](https://github.com/ljzxzxl/my-window-pip) | 任意窗口 / 屏幕区域画中画置顶浮窗（ScreenCaptureKit，CPU 近零），必需「屏幕录制」权限。自签证书、未经 Apple 公证 |
+| [`neriplayer`](#neriplayer) | latest（滚动） | **B** | arm64 / intel 双包 · `:macos` | [cwuom/NeriPlayer-Desktop](https://github.com/cwuom/NeriPlayer-Desktop) | 多源在线播放 + 本地音乐库 + 逐字歌词（Tauri 2 + Vue 3 + Rust），带独立桌面歌词与 macOS 菜单栏歌词。**预览版：一天发好几次，产物名里的版本号恒为 `1.0.0`** → 只能 `version :latest` 跟最新一次构建，`brew outdated` 不提醒、checksum 也没法钉死 |
 | [`netcatty`](#netcatty) | 1.1.83 | **C** | arm64 / intel 双包 · `:monterey` | [binaricat/Netcatty](https://github.com/binaricat/Netcatty) | SSH / SFTP / 终端工作台，支持分屏与 Telnet / Mosh。签名与公证正常，装完即用 |
 | [`nigate`](#nigate) | 1.4.5 | **A** | arm64 / intel 双包 · `:macos` | [hoochanlon/Free-NTFS-for-Mac](https://github.com/hoochanlon/Free-NTFS-for-Mac) | NTFS 读写挂载管理器（Electron）。它的「一键装依赖」会用管理员权限从 CDN 拉脚本装 / **删 macFUSE**，动手前先读注意事项 |
 | [`opennow`](#opennow) | 1.0.1 | **C** | 仅 arm64 · `:ventura` | [OpenCloudGaming/OpenNOW](https://github.com/OpenCloudGaming/OpenNOW) | 开源 GeForce NOW 客户端（Qt 6 + 自研 Rust 串流核心）。Developer ID + 公证 + hardened runtime 三样齐；带自己的原地更新器 → 设了 `auto_updates` |
@@ -131,7 +132,7 @@ brew uninstall --cask --zap splayer-next
 | 处置 | 判据 | 要做什么 | 收录 |
 | :-: | --- | --- | --- |
 | **A** | `codesign --verify --deep --strict` **退非 0** | **启动前**重签名 + 清 quarantine，见[已知上游问题](#签名不一致时要先重签名) | `micyou` `splayer-next` `lume-app` `nigate` `folia` `maaend` |
-| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` |
+| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` `neriplayer` |
 | **C** | 上一条退 0，且出现 `source=Notarized Developer ID` | 什么都不用做 | `netcatty` `ztools` `clipp` `pelmet` `mectrics` `opennow` `ferail` |
 | — | 尚未按这两个命令复核 | 见该 cask 那条注意事项 | `menu-bar-dock` |
 
@@ -171,6 +172,7 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 │   │   ├── micyou.rb
 │   │   └── my-window-pip.rb
 │   ├── n/
+│   │   ├── neriplayer.rb
 │   │   ├── netcatty.rb
 │   │   └── nigate.rb
 │   ├── o/
@@ -435,6 +437,8 @@ end
 
 改完要两头验：`brew livecheck --cask <name>` 在版本号正确时报等值（`8.0.16+334 ==> 8.0.16+334`），把 `version` 临时改成上一个发布（`8.0.15+333`）时要报出升级（`==> 8.0.16+334`）—— 只验前者不够，等值可能只是「两边都被截断成同一个数」。`Version` 认 `+` 为修订号，所以 `8.0.16+333 < 8.0.16+334` 的比较是对的。
 
+**产物名里的版本号恒定、tag 又不带可排序版本时，别硬凑 livecheck。** `neriplayer` 的上游是逐次构建发预览版：tag 叫 `NeriPlayer-<sha7>.<MMDDHHMM>`（例 `NeriPlayer-7d287ea.10111950`），而产物名永远是 `NeriPlayer_1.0.0_<arch>-adhoc.dmg` —— 版本号不随构建变，真正的构建标识只活在 tag 与随包的 `build-metadata.txt` 里。要重建 URL，livecheck 就得把整段 tag 后缀取回来（`7d287ea.10111950`），而 `Version` 是按 sha 前缀排这些字符串的，跟构建先后无关：**实测四个 tag，`ff9cfec.10102012`（旧）比 `c0947d5.10111750`（新）大**，即 autobump 会静默漏掉升级；退一步只取 `<MMDDHHMM>` 也不行 —— 那段戳不带年份，跨年不再单调。所以这份直接写 `version :latest` + `sha256 :no_check`，URL 走 `/releases/latest/download/`，装到的永远是当时最新的一次构建。
+
 ### 上游只有 prerelease 时
 
 这族要同时过两道，光换 strategy 不够。
@@ -640,6 +644,8 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 
 #### micyou
 
+#### micyou
+
 处置 A 的原始样本：plist 写 `10.13`、二进制 `minos 11.0`，所以 `depends_on` 是 `depends_on arch: :arm64` + `depends_on :macos`（`:big_sur` 会被判 redundant）。装完必须重签名，已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。它还需要一个虚拟音频设备才能把手机声音暴露成系统输入，这条写在 Caveats 里（`brew install --cask blackhole-2ch`）。附带两个 CLI：`micyou-cli` / `micyou-tui`，用 `binary` 暴露出来。
 
 #### my-window-pip
@@ -647,6 +653,18 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 属于 reinplayer 那一类：签名自洽，但没公证。`codesign -dvvv` 给的是 `Authority=MyWindowPip Release Signing`、`TeamIdentifier=not set`、`flags=0x0(none)` —— 上游 README 自己写明是**自签证书、未经 Apple 公证**。但 `Contents/_CodeSignature` 在、`codesign --verify --deep --strict` 退 0，所以它不是「损坏」，macOS 报的是「无法验证的开发者」而不是「已损坏」；同理它的判定门能过，**不进 LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`**（那里只收必须重签的坏包），Caveats 给的是清 quarantine（或右键 → 打开 一次）。另外它必需的「屏幕录制」授权按**固定路径 + 固定签名身份**存活，cask 装进 `appdir` 正好对上，上游那句「别从 DMG / 下载目录直接跑」正是这个原因。
 
 也没设 `auto_updates`，这次是读了实现才确定的。`Sources/my-window-pip/Updater.swift` 是手写的（`URLSession` + `CryptoKit` 校验上游随包发的 `.dmg.sha256`，无第三方依赖）：`checkSilently` 启动时只查询、回调里也只弹提示，下载要点「下载并安装」才开始，下完**打开挂载好的安装窗，由用户自己把 app 拖进 Applications** —— 典型的提示模型，后台不会静默换版本，所以升级渠道留给 Homebrew。`zap` 那四条的依据：应用自己写的只有 `Preferences.swift`（`UserDefaults.standard` 封装）和 `Log.swift`（`~/Library/Logs/MyWindowPip/MyWindowPip.log`，2 MB 滚动），`Caches` / `HTTPStorages` 两条是系统替它建的，四条都在**启动 + 退出**之后实测存在；上游 README 亦称捕获帧只在内存与显存、正常路径一个字都不写，所以这里没有任何用户内容。
+
+#### neriplayer
+
+本仓第一个「上游只发滚动预览版」的 cask，也是唯一一个**没法钉版本号**的。上游每构建一次就发一条 release，tag 是 `NeriPlayer-<sha7>.<MMDDHHMM>`（例 `NeriPlayer-7d287ea.10111950`），产物名却恒为 `NeriPlayer_1.0.0_<arch>-adhoc.dmg` —— `1.0.0` 不随构建变，真实构建标识只活在 tag 与随包的 `build-metadata.txt` 里（上游 README 也因此专门叮嘱：报问题时贴「设置 → 关于」里可复制的构建版本，别只写 `1.0.0`）。为什么不能按[上面那节](#无法自动检测时的维护方案)补 livecheck 把它钉住，两条实测理由写在那儿；结论就是 `version :latest` + `sha256 :no_check` + `/releases/latest/download/` 这一种写法，代价是 `brew outdated` 不再提醒、下载也无法校验。**三个来源的校验值当时是齐的**（上游随包的 `SHA256SUMS.txt` + GitHub asset 的 `digest` + 本地 `shasum`，两个架构各对一遍全等），只是过一天就作废，所以没写进 cask。`brew livecheck --cask neriplayer` 实测直接报 `neriplayer: latest`（`version :latest` 会被跳过，不报错）。
+
+签名属处置 B，而且**不属于**重签那一族：`Contents/_CodeSignature/CodeResources` 在、`codesign --verify --deep --strict` 对两个架构的包都退 0；可执行文件是 `Signature=adhoc`、`flags=0x10002(adhoc,runtime)`（比 `micyou` 那族多了 hardened runtime 位）但 `TeamIdentifier=not set`、没有 `Authority`，`xcrun stapler validate` 说没钉票。所以 Finder 不会判「已损坏」，Gatekeeper 报的是「无法验证的开发者」，`/Applications/NeriPlayer.app` **不进** LaunchAgent 的 `WatchPaths` / `DEFAULT_APPS`。不是沙箱应用：唯一 entitlement 是 `com.apple.security.cs.disable-library-validation`。也没设 `auto_updates` —— 二进制里搜不到 updater 插件（`tauri-plugin-updater` / `latest.json` / `autoUpdater` 全无命中），上游也没提应用内升级。
+
+版本下限两边自洽：arm64 的 `LSMinimumSystemVersion` 与 Mach-O `minos` 都是 `11.0`，x86_64 都是 `10.15`。两个值都在 Homebrew 自己支持下限（11.0）及以下，所以只能写 `depends_on :macos` —— `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant（同 `ferail`），而且 `audit_min_os` 读到 11.0 会提前 return，**这条检查其实压根没跑**，下限完全靠上面那两处独立读数撑着。
+
+`zap` 四条是**一次启动 + 退出**实测出来的，过程里又一次撞上 menumate 那条教训。用 `HOME=/tmp/neriprobe` 起进程：Rust 侧全部跟着假 HOME 走，`Application Support/NeriPlayer`（`neri_user_data.db` 及其 `-shm`/`-wal`，存歌单、收藏、播放历史、播放统计、本地曲库索引与下载目录索引，旁边是 `secure/legacy-keychain-migrated`）与 `Application Support/moe.ouom.neriplayer.desktop`（`settings.json` / `auth.json` / `sync-config.json`）都落在 `/tmp/neriprobe`；而 **WebKit 侧不吃 `$HOME`**，`Caches/moe.ouom.neriplayer.desktop`（27 MB，NetworkCache / HSTS / CacheStorage）与 `WebKit/moe.ouom.neriplayer.desktop`（WebsiteData）直接写进了真实家目录 —— 这两个路径就是这样才被发现的。**真实家目录与假 HOME 都查过、两次都没出现的**：`Preferences/moe.ouom.neriplayer.desktop.plist`、`HTTPStorages`、`Logs/NeriPlayer`、saved state，所以一条都没列 —— 上游把设置放在自己的 `settings.json` 里，不走 `UserDefaults`；`~/Library/LaunchAgents` 里也没留登录项。下载的音乐按设置里的目录走（默认空 = 上游默认值），属用户内容，不在 `zap` 里。
+
+`zap` 会连带删掉 SQLite 库里的歌单 / 收藏 / 播放历史，这符合 `--zap` 的语义（同 `folia` 清掉本地曲库索引），想留着歌单就别加 `--zap`。本机**只验到「解包」这一步之前**：这台机器的终端环境起不了 Homebrew 内层的 `sandbox-exec`（`sandbox_apply: Operation not permitted`），`brew install --cask` 与 `brew audit --online` 都会停在解包/提取那一步，所以 real install 与 `--online` 的 URL/解包检查留给 `macos-26` 上的 CI；本地能过的都过了 —— `ruby -c`、`brew style`、`brew audit --strict`（退 0）、`brew livecheck`，以及 URL 的直连下载与 sha256 三源对照。
 
 #### netcatty
 
