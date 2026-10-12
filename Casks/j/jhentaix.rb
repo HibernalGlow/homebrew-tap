@@ -1,6 +1,6 @@
 cask "jhentaix" do
-  version "8.0.16+337"
-  sha256 "1831034e2c531ec82c211d7e51abc41911d364a57a4d59c116ddbb36708bf595"
+  version "8.0.16+338"
+  sha256 "7efb7ab50a2fcaa4fed447058dbb4b583e9af89be8f95bcf998ec28865902dae"
 
   url "https://github.com/HibernalGlow/JHenTai/releases/download/v#{version}/JHenTaiX-#{version}.dmg"
   name "JHenTaiX"
