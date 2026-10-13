@@ -109,6 +109,7 @@ brew uninstall --cask --zap splayer-next
 | [`reinplayer`](#reinplayer) | 1.1.0 | **B** | universal · `:macos` | [Ahurein/rein_player](https://github.com/Ahurein/rein_player) | 跨平台影音播放器（Flutter + mpv / media_kit）。上游 ad-hoc 签名，bundle id 仍是占位 `com.example.reinPlayer` |
 | [`splayer-next`](#splayer-next) | 1.1.0 | **A** | arm64 / intel 双包 · `:monterey` | [SPlayer-Dev/SPlayer-Next](https://github.com/SPlayer-Dev/SPlayer-Next) | 跨平台桌面音乐播放器（Electron + Rust） |
 | [`status-trio`](#status-trio) | 1.3.1 | **B** | universal · `:sequoia` | [lingyired/status-trio](https://github.com/lingyired/status-trio) | 把 Wi-Fi / 电池 / 音量合成一个菜单栏（或程序坞）图标的原生 Swift 应用。本 tap 第一个设 `auto_updates` 的 cask |
+| [`waydir`](#waydir) | 0.23.0+30 | **B** | universal · `:macos` | [Waydir/Waydir](https://github.com/Waydir/Waydir) | 双栏键盘流文件管理器（Rust 核心 + Flutter UI），Quick Look 预览、命令面板、Lua 插件。**产物名带构建号（`+30`）而 tag 不带** → 版本只能从 asset 名里取；`--zap` 刻意不删你手放的插件与主题 |
 | [`ztools`](#ztools) | 3.2.0 | **C** | arm64 / intel 双包 · `:monterey` | [ZToolsCenter/ZTools](https://github.com/ZToolsCenter/ZTools) | 应用启动器 + 插件平台（类 uTools，Electron 41）。全局快捷键要单独授「辅助功能」权限；数据目录被重定向到 `~/.ztools` |
 
 ### 字体类 cask
@@ -133,7 +134,7 @@ brew uninstall --cask --zap splayer-next
 | 处置 | 判据 | 要做什么 | 收录 |
 | :-: | --- | --- | --- |
 | **A** | `codesign --verify --deep --strict` **退非 0** | **启动前**重签名 + 清 quarantine，见[已知上游问题](#签名不一致时要先重签名) | `micyou` `splayer-next` `lume-app` `nigate` `folia` `maaend` |
-| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` `neriplayer` `flut-renamer` |
+| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` `menumate` `neriplayer` `flut-renamer` `waydir` |
 | **C** | 上一条退 0，且出现 `source=Notarized Developer ID` | 什么都不用做 | `netcatty` `ztools` `clipp` `pelmet` `mectrics` `opennow` `ferail` |
 | — | 尚未按这两个命令复核 | 见该 cask 那条注意事项 | `menu-bar-dock` |
 
@@ -187,6 +188,8 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 │   ├── s/
 │   │   ├── splayer-next.rb
 │   │   └── status-trio.rb
+│   ├── w/
+│   │   └── waydir.rb
 │   └── z/
 │       └── ztools.rb           # 按 token 首字母分子目录（对齐 homebrew/cask 布局）
 ├── Formula/                    # 目前为空，保留占位
@@ -731,6 +734,18 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 
 其余都按老规矩验过：两片 `minos` 都是 15.0、与 `LSMinimumSystemVersion` 一致（`depends_on macos: :sequoia`，`audit_min_os` 不会挑刺）；sha256 三重对照（上游随包发的 `.dmg.sha256` + GitHub asset digest + 本地 `shasum`）；签名 ad-hoc 但自洽（`_CodeSignature` 在、strict verify 退 0）→ 清 quarantine 那一类，不进 LaunchAgent。`zap` 两条是**启动 + 退出之后**才成立的：运行期间 `~/Library/Preferences/` 一个文件都不出现（cfprefsd 攒着），退出才落 `com.lingsmbp.StatusTrio.plist`，里面同时有应用设置和 Sparkle 的 `SUHasLaunchedBefore` —— 也就是说 **Sparkle 的偏好写在应用自己的域里**，我先前按惯例加的 `org.sparkle-project.Sparkle.plist` 是个不存在的猜测，已删。上游文档另外给了两条边界值得记：它不读也不存 Wi-Fi 密码（macOS 没有用已存密码连接的公开 API），也不为「立即充满」写 SMC 或塞特权 helper。
 
+#### waydir
+
+版本号这一块是本仓遇到的第一种「tag 与产物名不同源」：tag 是 `v0.23.0`，产物名却是 `waydir-0.23.0+30-macos.dmg`（上一版 `v0.22.0` → `+29`），构建号**只活在 asset 名里**。所以 `version` 取 asset 的完整串 `0.23.0+30`（`+` 在 Homebrew 里是修订号，与 jhentai 的 `8.0.16+334` 同形），URL 再从它拆出 tag：`download/v#{version.to_s.split("+").first}/waydir-#{version}-macos.dmg`。livecheck 因此**不能用 `strategy :github_latest`**：它只会报 tag（`0.23.0`），对钉在 `0.23.0+30` 的 cask 读起来像一次降级，bump 时也重建不出 URL。这里改用 `strategy :json` 直接读 `/releases/latest`，从 macOS asset 名里把完整版本抠出来（`-testN` 那批 prerelease 由 `/releases/latest` 自己排除）。两个方向都验过：等值时报 `waydir: 0.23.0+30 ==> 0.23.0+30`，把 `version` 临时钉回 `0.22.0+29` 时报 `0.22.0+29 ==> 0.23.0+30`。sha256 两源全等（GitHub asset `digest` + 本地 `shasum`），上游不发校验文件。
+
+下限按实测写、且这次是「两片不一致」的形状：`LSMinimumSystemVersion` 与 x86_64 片都是 10.15，arm64 片是 11.0 —— 两个读数都在 Homebrew 支持下限（11）及以下，所以只能写 `depends_on :macos`（同 ferail / neriplayer），`audit_min_os` 读到 10.15 也会提前 return，**这条检查同样没跑**。签名 ad-hoc 且自洽（strict verify 退 0、无 `Authority`、`TeamIdentifier=not set`、无公证票）→ 处置 B，Caveats 只给清 quarantine；entitlements 是 `app-sandbox=false` + `disable-library-validation=true` + `get-task-allow=true`，最后一条同样不在上游自己的 `Release.entitlements` 里 —— 与 flut-renamer 一模一样的形状，已归纳进[通用规则](#通用规则)。
+
+更新器是自己写的，不是 Sparkle：`lib/core/update/update_store.dart` 下载 asset → 用 GitHub 的 asset digest 校验 sha256 → 在 macOS 上只做 `open <dmg>`，由人拖进 `/Applications`（原地换包只对 Linux / Windows portable 实现）。按本仓那句判据（**会不会自己换掉 bundle**）属于 netcatty / ztools / clipp 那一档 → **不设** `auto_updates`，Caveats 里提醒拖完之后跑一次 `brew upgrade --cask waydir` 把元数据对齐。
+
+`zap` 是本仓第一个「同一目录里既可再生又混着用户内容」的取舍。实测（DMG 里跑一次 + 装进 `/Applications` 再跑一次）它只建 `~/Library/Application Support/dev.waydir.app`：`waydir.db.sqlite`（drift 库，存设置、会话标签与最近路径）、`logs/waydir-<日期>.log`、还有两个空目录 `themes/` 与 `plugins/` —— 没有偏好 plist（这个应用**没有** `shared_preferences` 依赖，自然也不碰 `UserDefaults`）、没有 `Caches`、没有 saved state，`Info.plist` 里也没有 `NSQuitAlwaysKeepsWindows`。按 menumate 立的那条规矩（只列应用自己产生的可再生数据），`zap` 只收 db 与 logs；`plugins/` 里是用户手放的 Lua 插件（上游插件文档原话是「Drop a folder into the plugins directory」）、`themes/` 同理，都不进 `zap`，删除命令写在 Caveats 里。这条**做了正控**：先在两个目录各放一个 CANARY 文件，`uninstall --zap` 之后 db 与 logs 消失、两个 CANARY 原样还在。
+
+门：`ruby -c`、`brew style`（32 文件 0 offense，其中两条是 `homepage` 缺尾斜杠与正则字面量写法）、`brew audit --strict --online --cask` 退 0、`brew livecheck` 等值 + 证伪，最后真实 `install` → `uninstall --cask --zap` → `reinstall`（照旧带 `HOMEBREW_NO_AUTOREMOVE=1`）。顺带记一条环境事实：Flutter 侧走的是 `path_provider` / Foundation，`HOME` 指到假目录**不生效**——这次假 HOME 里一个文件都没落，真家目录里建了上面那套目录；与 menumate 那条「假 HOME 对 Foundation 侧无效」同族，neriplayer 的 WebKit 侧也一样。
+
 #### ztools
 
 签名也是正常的，`auto_updates` 同样按上面这条判断没设。`spctl -a` 判 `accepted / source=Notarized Developer ID`（`Developer ID Application: Zhengzhou Zhongsen Yunke Information Technology Co., Ltd. (4S4HH8375U)`），`codesign --verify --deep --strict` 退 0，所以不进 Caveats 的修复流程、也不进 LaunchAgent 列表。updater 是 `electron-updater` 6.8.9（`updaterCacheDirName: ztools-updater`），但代码里 `autoDownload = false` 且 `autoInstallOnAppQuit = false` —— 和 netcatty 一样的「提示模型」，因此升级渠道留给 Homebrew。`depends_on macos: :monterey` 取自二进制的 `LC_BUILD_VERSION`（`minos 12.0`），与 `Info.plist` 的 `LSMinimumSystemVersion` 恰好一致。Caveats 里只有辅助功能权限这一条：它靠 `uiohook-napi` 监听全局快捷键，未授权时快捷键没有反应（上游文案原话是「需要辅助功能权限来响应快捷键并完成键盘与窗口操作」）。应用自己有引导页，也有「重置辅助功能权限」入口，用于升级后 macOS 留着过期授权记录的情况。
@@ -756,5 +771,7 @@ ls -dt ~/Library/Application\ Support/* ~/Library/Caches/* | head
 > 代价是 `brew uninstall --cask --zap ztools` 会连用户自己装的插件（`~/.ztools/plugins`）和剪贴板历史一起删 —— 这符合 `--zap` 的语义，但想保住插件就别加 `--zap`。同一类取舍的另一个方向见 `lume-app`：那里刻意没把用户的 VM 镜像列进 `zap`。
 
 **Homebrew 会给 cask 产物打上 quarantine。** 实测 `brew install --cask splayer-next` 之后，`/Applications/SPlayer-Next.app` 上带着 `com.apple.quarantine`，首次启动因此要走 Gatekeeper 检查；上面的修复命令顺带清掉它。另外这两个应用都是 ad-hoc 签名（无 Developer ID、未公证），`spctl -a` 会判 `rejected` —— 这是 ad-hoc 的常态，不代表不能用，前提是签名本身自洽。
+
+**Flutter 桌面产物的 `get-task-allow` 是构建链给的，不是上游写漏了。** `flut-renamer` 与 `waydir` 两个产物都实测带 `com.apple.security.get-task-allow=true`，而两个仓库各自的 `macos/Runner/Release.entitlements` 里只有 `app-sandbox=false`（waydir 另有 `disable-library-validation`）—— 这条多出来的 entitlement 来自 `flutter build macos` 那步的 ad-hoc 签名，不是项目声明。代价是这个包对任何以你身份运行的进程都是可调试的；处理方式照这两个 cask：不改上游，写进 Caveats 如实标注。
 
 **`uninstall` / `zap` 用的是安装时留存的定义。** `brew uninstall --cask --zap <name>` **不看 tap 里的当前文件**：优先用安装时留下来的那份定义，落点有两种形态 —— 多数 cask 会在 `Caskroom/<name>/.metadata/<version>/<时间戳>/Casks/<name>.rb` 留一份副本（如 `ab-download-manager`），而 `flut-renamer` 那份没有副本、只有 `INSTALL_RECEIPT.json` 里的 `uninstall_artifacts` 快照（`cask/cask_loader.rb` 的注释写着 "Prefer exact receipt artifacts"）。实例（`flut-renamer` 实测两次）：装的时候 zap 里还有第三条 saved state，改完文件删掉它再 `uninstall --zap`，它照样清了那三条；重装之后同一命令才变成两条。所以改完 `zap` 只 `brew style` 是验不到的，要先 `brew reinstall`（或 `install`）让新定义落盘，再 `uninstall --zap` 才会按新列表执行。
