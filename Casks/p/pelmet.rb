@@ -1,6 +1,6 @@
 cask "pelmet" do
-  version "0.8.1"
-  sha256 "ec882ff2b6b0efe2c2a1fbb2f675dba1b80581ee95b46146ebb2ef052554d8b4"
+  version "0.10.0"
+  sha256 "b50313d36c622d6077aa12c8da222431dc7dd04ac8a3920030e174cae1646824"
 
   url "https://github.com/ismatBabirli/pelmet/releases/download/v#{version}/Pelmet-#{version}.dmg"
   name "Pelmet"
