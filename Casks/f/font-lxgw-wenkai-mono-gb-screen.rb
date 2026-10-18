@@ -1,6 +1,6 @@
 cask "font-lxgw-wenkai-mono-gb-screen" do
-  version "1.522"
-  sha256 "294ad0fcc597f93c555cb866bb827f38acd0479c0372c42b18bc0e93bd6434e4"
+  version "1.530"
+  sha256 "2cda8fb9db28d5b3f8928e464e4a7be9d137fab6e93acd04441b0358ce0c3b26"
 
   url "https://github.com/lxgw/LxgwWenKai-Screen/releases/download/v#{version}/LXGWWenKaiMonoGBScreen.ttf"
   name "LXGW WenKai Mono GB Screen"
