@@ -153,8 +153,6 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
 │   ├── h/
 │   │   └── hibernal.rb
-│   │   ├── jhentai.rb
-│   │   └── jhentaix.rb
 │   ├── l/
 │   │   └── lume-app.rb
 │   ├── m/
@@ -222,10 +220,10 @@ $EDITOR Casks/<首字母>/<name>.rb
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
 - **签名判定按[上面那两个命令](#签名与公证的三类处置)走，别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分四类：签名自洽 + 公证（处置 C）、自洽但没有 Developer ID（ad-hoc 或自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats，处置 B）、声明有资源却没有 `_CodeSignature`（判「已损坏」，必须重签，处置 A）、以及**封套在但内容对不上**（`maaend`：`_CodeSignature` 齐、可 `--verify --deep --strict` 照样红，成因见[下文](#maaend-的另一种封套成因)）。后两类的判定门是同一条命令，所以修复手段也一样；第一类与第三类的区别只在于「能不能启动」在这台机器上验不出来，别拿本机的成功当公证过的结论
 - `zap trash:` 只列应用自己产生的数据；用户的下载内容 / 音乐库不要列入（`--zap` 会真删）
-- **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：jhentai 的缓存叫 `Caches/JHenTai` / `Caches/cacheimage`。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
+- **`zap` 要「启动 + 退出」之后才算验过**：`Caches/<bundle id>`、`HTTPStorages/<bundle id>` 这类常常是**退出时**才建的（my-window-pip 就是启动时看不见、退出后才出现）；反过来，被重定向走的 profile 会让某些标准路径**永远不出现**（ztools 把 Electron 的 userData 挪到 `~/.ztools`，于是 `~/Library/Caches/ZTools` 不存在）。目录名也别说成 bundle id 的定值：有的用显示名，有的用自定义短名。验完把「实测存在」和「按上游声明保留」两类在注释里分开写
 - **装上不等于生效的那类（扩展 / 驱动）只写 Caveats**：需要 `pluginkit -a` / `-e use`、`systemextensionsctl` 之类激活的 cask，把命令原样放进 Caveats 并给出「谁在供这个功能」的查法（`arcthumb` 的实测教训：旧路径的注册会盖住新装的这份），不要为了省事改成 `postflight`
-- **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样，见[jhentai](#jhentai)），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
-- **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。**上游不发的也没关系：GitHub 自己为每个 asset 存了 sha256**，`gh api repos/<owner>/<repo>/releases/latest --jq '.assets[] | .name + " " + (.digest // "no-digest")'` 直接给（值带 `sha256:` 前缀；clipp / rawviewer 实测对得上）。注意它只证明「这个 URL 拿到的字节就是 GitHub 上挂的那个 asset」，不能替上游发布环节背书；两处都拿不到的（如 JHenTai）就照实说明只有一个来源
+- **先判沙箱再写 `zap`**：`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox` 的话，`~/Library/...` 全部要换成 `~/Library/Containers/<bundle id>/Data/Library/...` 前缀。沙箱应用常常把用户内容也放进容器里的 `Documents`（Flutter + `path_provider` 就是这样），这时**不要整容器列入**，只列可再生项，把「连书库一起清」留成 Caveats 里给用户的命令
+- **sha256 尽量找第二来源**：上游若随包发校验文件（`SHA256SUMS.txt`、`<artifact>.sha256`），拿它对一遍再写进 cask，别只靠自己下载算一次 —— 那是单一来源，撞上上游原地重传就无声了。**上游不发的也没关系：GitHub 自己为每个 asset 存了 sha256**，`gh api repos/<owner>/<repo>/releases/latest --jq '.assets[] | .name + " " + (.digest // "no-digest")'` 直接给（值带 `sha256:` 前缀；clipp / rawviewer 实测对得上）。注意它只证明「这个 URL 拿到的字节就是 GitHub 上挂的那个 asset」，不能替上游发布环节背书；两处都拿不到的就照实说明只有一个来源
 - app 里若还打包了 CLI / TUI 可执行文件，用 `binary "#{appdir}/X.app/Contents/MacOS/x-cli", target: "x-cli"` 暴露出来
 
 ### 字体类 cask（`font-` token）
@@ -639,7 +637,7 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 
 #### rawviewer
 
-把「沙箱里缓存目录名不等于 bundle id」这条推到了极端：全程只留下两个路径。容器 `~/Library/Containers/com.example.rawviewer/` 在启动时创建；从启动 → 打开一张图 → 正常退出一路看着，`Data/Library/Caches/` 里只有 `flutter_engine`，`Data/Library/Preferences/com.example.rawviewer.plist` 真实写入（`shared_preferences` 的 `flutter.*` 键）—— 而 `path_provider` 虽然挂在依赖里，`Caches/<bundle id>` 和 `Application Support/<bundle id>` **一次都没出现**，HTTPStorages / WebKit / saved state 也没有。所以 `zap` 只有两条，比按惯例写的五条少三条 —— 多出来的那三条正是 jhentai 那轮被实测推翻的同一种形状。顺带一条隐私向的观察：plist 里 `flutter.recent_open_items` 存的是**用户照片的真实完整路径**（还有 `NSNavLastRootDirectory`），`--zap` 会把它一起清掉。
+把「沙箱里缓存目录名不等于 bundle id」这条推到了极端：全程只留下两个路径。容器 `~/Library/Containers/com.example.rawviewer/` 在启动时创建；从启动 → 打开一张图 → 正常退出一路看着，`Data/Library/Caches/` 里只有 `flutter_engine`，`Data/Library/Preferences/com.example.rawviewer.plist` 真实写入（`shared_preferences` 的 `flutter.*` 键）—— 而 `path_provider` 虽然挂在依赖里，`Caches/<bundle id>` 和 `Application Support/<bundle id>` **一次都没出现**，HTTPStorages / WebKit / saved state 也没有。所以 `zap` 只有两条，比按惯例写的五条少三条 —— 多出来的那三条正是同一类被实测推翻的形状。顺带一条隐私向的观察：plist 里 `flutter.recent_open_items` 存的是**用户照片的真实完整路径**（还有 `NSNavLastRootDirectory`），`--zap` 会把它一起清掉。
 
 上游缺陷与判定：bundle id 停在 Flutter 占位值 `com.example.rawviewer`（和 `reinplayer` 的 `com.example.reinPlayer` 同一类），容器目录与文件关联全挂在它上面，值得去开 issue；签名是 ad-hoc、未公证，但 `Contents/_CodeSignature` 在、`--verify --deep --strict` 退 0 → 属清 quarantine 那一类，**不进** LaunchAgent 列表。`auto_updates` 没设的依据：`lib/core/update_checker.dart` 只 `GET api.github.com/repos/stmtc233/rawviewer/releases/latest`（10 秒超时，fetcher 可注入便于测试），整个文件没有下载 / 安装 / `Process` 调用 —— 连提示模型都算不上，只是告知有新版本。
 
