@@ -90,8 +90,6 @@ brew uninstall --cask --zap splayer-next
 | [`ferail`](#ferail) | 0.7.8 | **C** | 仅 arm64 · `:macos` | [jonx/Ferail](https://github.com/jonx/Ferail) | Rust + GPUI 写的原生文件管理器（面向重度用户）。Developer ID + 公证 + hardened runtime 齐；更新器只把 DMG 下到 `~/Downloads`、从不换 bundle → **不设** `auto_updates` |
 | [`folia`](#folia) | 0.7.8 | **A** | arm64 / intel 双包 · `:monterey` | [chthollyphile/folia-major](https://github.com/chthollyphile/folia-major) | 本地 / Navidrome 音乐播放器，主打歌词动画（Electron）。**应用内那个「自动更新」别开** |
 | [`hibernal`](#hibernal) | 2.0.0 | **B** | universal · `:ventura` | [HibernalGlow/hibernal](https://github.com/HibernalGlow/hibernal) | 从菜单栏或全局快捷键一键触发深度休眠。首次休眠要一次管理员密码装 root helper；`--zap` 会连那个 helper 一起清 |
-| [`jhentai`](#jhentai) | 8.0.16+334 | **B** | universal · `:macos` | [jiangtian616/JHenTai](https://github.com/jiangtian616/JHenTai) | E-Hentai / ExHentai 漫画客户端（Flutter），下载与本地书库齐全。**上游标明 macOS 构建「无维护」**；沙箱应用，`zap` 只清可再生部分 |
-| [`jhentaix`](#jhentaix) | 8.0.16+337 | **B** | 单包 · `:monterey` | [HibernalGlow/JHenTai](https://github.com/HibernalGlow/JHenTai) | JHenTai 的本仓 fork，带磁力链接工具。8.0.16+337 起换了自己的 bundle id，与 `jhentai` 并存、不共容器 |
 | [`lume-app`](#lume-app) | 1.2.0 | **A** | universal · `:macos` | [hugomyb/Lume](https://github.com/hugomyb/Lume) | 轻量虚拟机管理器（macOS / Linux 客户机）。用户的 VM 镜像刻意**不进** `zap` |
 | [`maaend`](#maaend) | 2.30.1 | **A** | arm64 / intel 双包 · `:ventura` | [MaaEnd/MaaEnd](https://github.com/MaaEnd/MaaEnd) | 「明日方舟：终末地」视觉 AI 自动化助手（Tauri + MaaFramework）。**上游产物连自己的资源封套都对不上**（模板图文件名 NFC / NFD 不一致）；数据落在框架共享的 `Application Support/MXU/`，`zap` 只能按文件名挑 |
 | [`mectrics`](#mectrics) | 1.8.0 | **C** | universal · `:sequoia` | [farukkamcici/mectrics](https://github.com/farukkamcici/mectrics) | 菜单栏系统监控（CPU / 内存 / 网络 / 磁盘 / GPU / 温度 / 风扇），带一个独立的只读 CLI。本仓第一个「签名、公证、Sparkle 三样都齐」的 cask |
@@ -130,7 +128,7 @@ brew uninstall --cask --zap splayer-next
 | 处置 | 判据 | 要做什么 | 收录 |
 | :-: | --- | --- | --- |
 | **A** | `codesign --verify --deep --strict` **退非 0** | **启动前**重签名 + 清 quarantine，见[已知上游问题](#签名不一致时要先重签名) | `micyou` `splayer-next` `lume-app` `nigate` `folia` `maaend` |
-| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `jhentai` `jhentaix` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` |
+| **B** | 上一条退 0，但 `spctl -a -vvv` 里**没有** `source=Notarized Developer ID` | 首启清 quarantine，或右键 → 打开一次 | `reinplayer` `arcthumb` `rawviewer` `my-window-pip` `status-trio` `clamless` `hibernal` |
 | **C** | 上一条退 0，且出现 `source=Notarized Developer ID` | 什么都不用做 | `netcatty` `ztools` `clipp` `pelmet` `mectrics` `opennow` `ferail` |
 | — | 尚未按这两个命令复核 | 见该 cask 那条注意事项 | `menu-bar-dock` |
 
@@ -155,7 +153,6 @@ A 与 B 的区别只在于「能不能启动」：A 的包体与签名声明自�
 │   │   └── font-lxgw-wenkai-*.rb   # 4 个字体变体各一个 cask
 │   ├── h/
 │   │   └── hibernal.rb
-│   ├── j/
 │   │   ├── jhentai.rb
 │   │   └── jhentaix.rb
 │   ├── l/
@@ -220,7 +217,7 @@ $EDITOR Casks/<首字母>/<name>.rb
 - 顺序遵循 Cask Style Guide：`arch` → `version` → `sha256` → `url` → `name` → `desc` → `homepage` → `livecheck` → `depends_on` → `app` → `zap`
 - 上游产物有架构区分时，用 `arch arm: "arm64", intel: "x64"` 重定义 `arch`，再在 URL 里插值，避免写 `on_arm` / `on_intel` 两份
 - 上游只发**单一架构**时，直接 `depends_on arch: :arm64`（或 `:x86_64`），URL 里写死该架构即可
-- `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0`）。但**低于 Homebrew 自身支持下限的版本号写了也白写**：`depends_on macos: :catalina` / `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant minimum、`brew style` 直接红，这种就改写成 `depends_on :macos`（`micyou` / `jhentai` / `nigate` 都是这样；别为了凑一个版本号去写更低的系统支持）
+- `depends_on macos:` **别照抄 `Info.plist` 的 `LSMinimumSystemVersion`** —— Tauri / Electron 常统一写 `10.13`，不代表真实下限。以二进制为准：`otool -l <exe> | grep -A5 LC_BUILD_VERSION` 里的 `minos`（例：MicYou 的 plist 写 10.13，实际 `minos 11.0`）。但**低于 Homebrew 自身支持下限的版本号写了也白写**：`depends_on macos: :catalina` / `:big_sur` 会被 `Homebrew/OSDependsOn` 判 redundant minimum、`brew style` 直接红，这种就改写成 `depends_on :macos`（`micyou` / / `nigate` 都是这样；别为了凑一个版本号去写更低的系统支持）
 - `desc` 不重复包名、结尾不加句号、不超过 80 字符，**也不要出现平台名**（写了 `macOS` 会被 `Cask/Desc` 判 `Description shouldn't contain the platform`）
 - **不要写 `verified:`** —— Homebrew 已废弃该参数，写了会持续报 deprecation 警告
 - **签名判定按[上面那两个命令](#签名与公证的三类处置)走，别只看 `spctl -a`**：本机 Gatekeeper 评估是关着的（`spctl --status` → `assessments disabled`），任何包都回 `accepted`。要读 `codesign -dvvv` 的 `Authority` / `TeamIdentifier`，并在 `spctl -a -vvv` 里确认出现 `source=Notarized Developer ID`。分四类：签名自洽 + 公证（处置 C）、自洽但没有 Developer ID（ad-hoc 或自签证书，quarantine + 无 Developer ID → 首启被拦，给清 quarantine 的 Caveats，处置 B）、声明有资源却没有 `_CodeSignature`（判「已损坏」，必须重签，处置 A）、以及**封套在但内容对不上**（`maaend`：`_CodeSignature` 齐、可 `--verify --deep --strict` 照样红，成因见[下文](#maaend-的另一种封套成因)）。后两类的判定门是同一条命令，所以修复手段也一样；第一类与第三类的区别只在于「能不能启动」在这台机器上验不出来，别拿本机的成功当公证过的结论
@@ -413,7 +410,6 @@ end
 > [!NOTE]
 > 注意：`brew style <tap>` 会用 rubocop-md 把 README 里的 Ruby 代码块也一起检查，所以文档中的 Ruby 片段同样要保持缩进与风格正确，否则 CI 会红。
 
-**tag 带 `+build` 后缀时，`strategy :github_latest` 会自己把后缀吃掉。** JHenTai 的 tag 是 `v8.0.16+334`、产物叫 `JHenTai-8.0.16+334.dmg`，但 `github_latest` 走的是 `GithubReleases::DEFAULT_REGEX`（`v?(\d+(?:\.\d+)+)`），到 `+` 就停，于是 livecheck 报 `8.0.16`。cask 里若照 tag 写全 `version "8.0.16+334"`，`brew audit` 直接失败：
 
 ```text
 Version '8.0.16+334' differs from '8.0.16' retrieved by livecheck.
@@ -568,20 +564,6 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 
 它改的是电源管理状态（`hibernatemode`、standby、powernap、womp），并且会在睡眠前弹出外接盘 —— 这是功能本身，不是副作用，装之前该知道。
 
-#### jhentai
-
-是沙箱应用，`zap` 的写法因此和别的都不一样。`codesign -d --entitlements :- <app>` 里有 `com.apple.security.app-sandbox`（**判断沙箱只认这个，别猜**），于是 Flutter 的 `path_provider` 拿到的都是容器内路径：一切都落在 `~/Library/Containers/top.jtmonster.jhentai/Data/`。更要紧的是 `PathService.getVisibleDir()` 在 macOS 上返回 `getApplicationDocumentsDirectory()`，而 `path_provider_foundation` 只对 Application Support / Caches 追加 bundle id 子目录、**Documents 不追加**（见其 `_getDirectoryPath`）—— 所以 `db.sqlite`（书库）、`jhentai.gs`（设置）、`logs/`、`download/`（下载的作品）是平铺在 `Data/Documents/` 里的。整容器删就等于删用户下载，违反「`--zap` 不碰用户内容」这条（同 `lume-app` 不列 VM 镜像），所以这里只列可再生项，登录态一起清的口子留给用户自己（Caveats 里给了容器目录）。以上跑过真机：启动 + 退出后 `Data/Documents/` 里确实是 `jhentai.gs` / `jhentai.bak` / `jhentai.version` / `db.sqlite` / `logs` / `download` / `local_gallery` / `save` 平铺；`Data/Library/Preferences/` 下**没有**应用自己的 plist（设置不走 UserDefaults），图片缓存则在 `Data/Library/Caches/` 下叫 `JHenTai` / `cacheimage` / `flutter_engine` / `WebKit` —— **容器里的缓存目录名不一定等于 bundle id**，照 bundle id 猜会全部落空。另外上游 README 把 macOS / Linux 构建标成 **No maintenance**，autobump 提的升级 PR 要额外留意：新版本可能压根没人在 mac 上验过。
-
-签名与 `reinplayer` 同类（`Signature=adhoc`、`TeamIdentifier=not set`，还带 `com.apple.security.get-task-allow`，这条本身就与公证冲突），Caveats 给清 quarantine，不进 LaunchAgent 列表。两点附带提醒：它的 tag 带 `+334` 这种构建号，livecheck 要按[上文那条](#无法自动检测时的维护方案)补正则，否则 `brew audit` 会因版本号被截断而失败；`depends_on` 也别照二进制直写 —— 两片 minos 不同（x86_64 `10.15`、arm64 `11.0`），写 `depends_on macos: :catalina` 会被 `Homebrew/OSDependsOn` 判 redundant minimum 让 `brew style` 变红，正确写法就是 `depends_on :macos`。
-
-#### jhentaix
-
-`jhentai` 的本仓库 fork（`HibernalGlow/JHenTai`），带磁力链接相关工具。**8.0.16+337 起这个 fork 换了自己的 bundle id** `top.jtmonster.jhentaix`，所以两个 app 不再抢 `jhentai.app`、也不再共用容器 —— 与 `jhentai` 可以并存，但登录态与书库**不共享**（容器按 bundle id 分家），Caveats 里写明了这一点。
-
-`zap` 那一份列表跟着新 bundle id 走：`Application Support` 那条由 `path_provider` 从 bundle id 推出来，其余名字是应用自己硬编码的文件与缓存目录名（改名时没变）。**与 `jhentai` 不同，这一份没有对真机启停验过**，只是沿用了上游那轮实测的同名文件结论，若哪条路径实际不符就照实改。和上游一样只列可再生项：`Data/Documents/download`、`local_gallery`、`save` 与 `db.sqlite` 是用户下载的内容，不进 `zap`。
-
-签名与 `jhentai` 同一类：ad-hoc、无 Developer ID、未公证（cask 注释记的是「对这份 dmg 本身跑 `codesign -dv` 得到 `Signature=adhoc`、`TeamIdentifier=not set`」），Homebrew 又打上 quarantine → 首启被 Gatekeeper 拦，清 quarantine 或右键打开一次，每次 `brew upgrade --cask jhentaix` 之后重做。tag 同样带 `+337` 这种构建号，所以 `livecheck` 里那条 `regex(/v(\d+(?:\.\d+)+\+\d+)/)` 是必需的，理由见[无法自动检测时的维护方案](#无法自动检测时的维护方案)。
-
 #### lume-app
 
 轻量虚拟机管理器，处置 A：可执行文件 linker-signed ad-hoc、签名声明有密封资源却没有 `Contents/_CodeSignature`，装完必须按[已知上游问题](#签名不一致时要先重签名)那条重签名，已加进 LaunchAgent 的 `WatchPaths` 与 `DEFAULT_APPS`。
@@ -642,7 +624,7 @@ codesign --verify --deep --strict /Applications/MaaEnd.app
 
 版本下限这次**没有** clamless 那种冲突，而且成因值得记：这个 bundle 的 `Info.plist` **压根没有** `LSMinimumSystemVersion` 键，于是审计的 `cask_bundle_min_os` 走 Mach-O 回退分支，`vtool -show-build` 给 `minos 13.0`（SDK 15.5），与上游「macOS 13+」一致 → `depends_on macos: :ventura` 同时是真值和审计推出来的值，`brew audit --strict --online opennow` 实测退 0。这次的绿**做过证伪**：改成 `:tahoe` 后同一命令退 1、仍报 `Artifact defined :ventura ... but the cask declared ... :tahoe` —— 那个 `:ventura` 只可能来自 Mach-O，所以「plist 缺键就回退读二进制」这条不是推的，是拿一次红验出来的。产物只有 arm64 一片（上游原话 "Intel Macs are not included"）；sha256 三重对照（上游随包发的 `SHA256SUMS` + GitHub asset `digest` + 本地 `shasum` 全等，每个 asset 还各带一个 `.manifest.json`，那是它更新器的 ed25519 签名清单，不是校验文件）。`homepage` 用 `https://opennow.zortos.me/`：仓库的 homepage 字段是空的，`opennow.app` 只是 Qt 的 `organizationDomain`（解析不到），而 README 里链的这个站标题就是「OpenNOW — Open-source GeForce NOW client」。
 
-`zap` 只有一条，而且是**故意只有一条**。设置与账号数据全在 Rust 核心那个目录（`opennow-core/src/settings.rs:828-830` → `~/Library/Application Support/OpenNOW`，里面是 `settings.json`）；Qt 侧 `QSettings` 只出现在 `AppController.cpp:399-413` 的 `#ifdef Q_OS_WIN` 分支里，也就是 **macOS 上不写偏好 plist**，别按惯例补 `~/Library/Preferences/io.github.opencloudgaming.OpenNOW.plist` 那条。反过来 `~/Pictures/OpenNOW/{Screenshots,Recordings}` 是它落截图与录屏的地方（`opennow-core/src/media.rs:18-20`），属用户内容，按 `jhentai` / `lume-app` 那条红线**不进 `zap`**，只在 Caveats 里告诉人自己去删。以上路径全是读源码定的，**没做启动验证**（它要 NVIDIA 账号登录、还要有可串的游戏才有意义），所以启停实测与 `Caches` 有没有东西仍欠一次。
+`zap` 只有一条，而且是**故意只有一条**。设置与账号数据全在 Rust 核心那个目录（`opennow-core/src/settings.rs:828-830` → `~/Library/Application Support/OpenNOW`，里面是 `settings.json`）；Qt 侧 `QSettings` 只出现在 `AppController.cpp:399-413` 的 `#ifdef Q_OS_WIN` 分支里，也就是 **macOS 上不写偏好 plist**，别按惯例补 `~/Library/Preferences/io.github.opencloudgaming.OpenNOW.plist` 那条。反过来 `~/Pictures/OpenNOW/{Screenshots,Recordings}` 是它落截图与录屏的地方（`opennow-core/src/media.rs:18-20`），属用户内容，按 / `lume-app` 那条红线**不进 `zap`**，只在 Caveats 里告诉人自己去删。以上路径全是读源码定的，**没做启动验证**（它要 NVIDIA 账号登录、还要有可串的游戏才有意义），所以启停实测与 `Caches` 有没有东西仍欠一次。
 
 #### pelmet
 
