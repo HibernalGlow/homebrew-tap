@@ -1,9 +1,9 @@
 cask "maaend" do
   arch arm: "aarch64", intel: "x86_64"
 
-  version "2.30.1"
-  sha256 arm:   "73d1cd0fab6110d39a3364c7e0ad43778ebcc80896653b436d7760a1c4a9b8a7",
-         intel: "81de3a2435423bb3e1cd1ac8fa332ed8ce0c9bd7092152f8adeffb1dd0a39d50"
+  version "2.31.0"
+  sha256 arm:   "fda91db14065526af023a9a3e35a39f13a417176b13654f4a0d2f63063347ba4",
+         intel: "957c3ffcf87104ee53b5b1fe72c8f33b4df4049c87b553599cf3d10135638382"
 
   url "https://github.com/MaaEnd/MaaEnd/releases/download/v#{version}/MaaEnd-macos-#{arch}-v#{version}.dmg"
   name "MaaEnd"
